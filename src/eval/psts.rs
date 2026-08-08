@@ -142,17 +142,35 @@ pub(super) const MAX_PHASE: i64 = 24;
 pub(super) const MG_PIECE_VALUES: [i64; 6] = [82, 337, 365, 477, 1025, 0];
 pub(super) const EG_PIECE_VALUES: [i64; 6] = [94, 281, 297, 512, 936, 0];
 
-pub(super) fn calc_tapered_score(piece: usize, mg_phase: i64, bitboard: Bitboard, magic: u16) -> i64 {
+
+pub(super) fn calc_tapered_score_with_params(
+    piece: usize,
+    mg_phase: i64,
+    bitboard: Bitboard,
+    magic: u16,
+    mg_pawn_pst: &[i64; 64],
+    eg_pawn_pst: &[i64; 64],
+) -> i64 {
     let mut mg_score = 0;
     let mg_val = MG_PIECE_VALUES[piece];
     for sq in bitboard {
-        mg_score += mg_val + MG_PSTS[piece][(sq ^ magic) as usize];
+        let pst_val = if piece == 0 {
+            mg_pawn_pst[(sq ^ magic) as usize]
+        } else {
+            MG_PSTS[piece][(sq ^ magic) as usize]
+        };
+        mg_score += mg_val + pst_val;
     }
 
     let mut eg_score = 0;
     let eg_val = EG_PIECE_VALUES[piece];
     for sq in bitboard {
-        eg_score += eg_val + EG_PSTS[piece][(sq ^ magic) as usize];
+        let pst_val = if piece == 0 {
+            eg_pawn_pst[(sq ^ magic) as usize]
+        } else {
+            EG_PSTS[piece][(sq ^ magic) as usize]
+        };
+        eg_score += eg_val + pst_val;
     }
 
     let eg_phase = MAX_PHASE - mg_phase;

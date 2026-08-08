@@ -1,15 +1,15 @@
 use crate::bitboard::Bitboard;
 
-//PeSTO middlegame tables.
+//Custom tuned middlegame tables.
 pub(super) const MG_PAWN_PST: [i64; 64] = [
-      0,   0,   0,   0,   0,   0,  0,   0, // 8
-     98, 134,  61,  95,  68, 126, 34, -11,
-     -6,   7,  26,  31,  65,  56, 25, -20,
-    -14,  13,   6,  21,  23,  12, 17, -23,
-    -27,  -2,  -5,  12,  17,   6, 10, -25,
-    -26,  -4,  -4, -10,   3,   3, 33, -12,
-    -35,  -1, -20, -23, -15,  24, 38, -22,
-      0,   0,   0,   0,   0,   0,  0,   0, // 1
+          0,    0,    0,    0,    0,    0,    0,    0, // Rank 8
+         19,  142,   29,  195,   18,   80,   58,  -98, // Rank 7
+        -29,   19,   40,   50,   95,   92,   28,    4, // Rank 6
+        -26,    7,   10,   21,   21,    8,   14,  -23, // Rank 5
+        -31,  -14,   -5,   12,   21,    8,   -9,  -29, // Rank 4
+        -30,  -16,   -4,  -12,    1,    3,   21,  -12, // Rank 3
+        -39,  -17,  -16,  -27,  -11,   24,   22,  -22, // Rank 2
+          0,    0,    0,    0,    0,    0,    0,    0, // Rank 1
 ];
 
 pub(super) const MG_KNIGHT_PST: [i64; 64] = [
@@ -68,14 +68,14 @@ pub(super) const MG_KING_PST: [i64; 64] = [
 ];
 
 pub(super) const EG_PAWN_PST: [i64; 64] = [
-      0,   0,   0,   0,   0,   0,   0,   0,
-    178, 173, 158, 134, 147, 132, 165, 187,
-     94, 100,  85,  67,  56,  53,  82,  84,
-     32,  24,  13,   5,  -2,   4,  17,  17,
-     13,   9,  -3,  -7,  -7,  -8,   3,  -1,
-      4,   7,  -6,   1,   0,  -5,  -1,  -8,
-     13,   8,   8,  10,  13,   0,   2,  -7,
-      0,   0,   0,   0,   0,   0,   0,   0,
+          0,    0,    0,    0,    0,    0,    0,    0, // Rank 8
+        184,  131,  146,   54,  135,   84,  147,  191, // Rank 7
+         50,   26,    5,  -25,  -36,  -14,    6,   24, // Rank 6
+         20,   -2,  -11,  -27,  -14,  -12,   -3,    5, // Rank 5
+         13,    5,   -7,  -19,  -15,  -16,   -5,   -5, // Rank 4
+          0,   -3,  -10,  -11,    0,   -9,  -17,  -12, // Rank 3
+         13,    0,   -4,   -2,   -5,   -8,  -14,  -15, // Rank 2
+          0,    0,    0,    0,    0,    0,    0,    0, // Rank 1
 ];
 
 pub(super) const EG_KNIGHT_PST: [i64; 64] = [
@@ -148,29 +148,19 @@ pub(super) fn calc_tapered_score_with_params(
     mg_phase: i64,
     bitboard: Bitboard,
     magic: u16,
-    mg_pawn_pst: &[i64; 64],
-    eg_pawn_pst: &[i64; 64],
+    mg_psts: &[[i64; 64]; 6],
+    eg_psts: &[[i64; 64]; 6],
 ) -> i64 {
     let mut mg_score = 0;
     let mg_val = MG_PIECE_VALUES[piece];
     for sq in bitboard {
-        let pst_val = if piece == 0 {
-            mg_pawn_pst[(sq ^ magic) as usize]
-        } else {
-            MG_PSTS[piece][(sq ^ magic) as usize]
-        };
-        mg_score += mg_val + pst_val;
+        mg_score += mg_val + mg_psts[piece][(sq ^ magic) as usize];
     }
 
     let mut eg_score = 0;
     let eg_val = EG_PIECE_VALUES[piece];
     for sq in bitboard {
-        let pst_val = if piece == 0 {
-            eg_pawn_pst[(sq ^ magic) as usize]
-        } else {
-            EG_PSTS[piece][(sq ^ magic) as usize]
-        };
-        eg_score += eg_val + pst_val;
+        eg_score += eg_val + eg_psts[piece][(sq ^ magic) as usize];
     }
 
     let eg_phase = MAX_PHASE - mg_phase;

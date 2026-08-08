@@ -5,11 +5,11 @@ use psts::*;
 use pawn_structure::*;
 use crate::{board::Board, piece::Piece};
 
-const ISOLATED_PAWN_MG: i64 = -10;
-const ISOLATED_PAWN_EG: i64 = -20;
+const ISOLATED_PAWN_MG: i64 = -14;
+const ISOLATED_PAWN_EG: i64 = -8;
 
-const PASSED_PAWN_MG: [i64; 8] = [0, 0, 5, 10, 15, 25, 45, 0];
-const PASSED_PAWN_EG: [i64; 8] = [0, 0, 10, 15, 25, 45, 80, 0];
+const PASSED_PAWN_MG: [i64; 8] = [0, 0, 8, -8, 17, 11, 25, 0];
+const PASSED_PAWN_EG: [i64; 8] = [0, 0, 0, 24, 49, 105, 40, 0];
 
 //useful to allow tuning routines to fuck with the params.
 #[derive(Clone, Copy)]
@@ -18,8 +18,8 @@ pub struct EvalParams {
     pub isolated_pawn_eg: i64,
     pub passed_pawn_mg: [i64; 8],
     pub passed_pawn_eg: [i64; 8],
-    pub mg_pawn_pst: [i64; 64],
-    pub eg_pawn_pst: [i64; 64],
+    pub mg_psts: [[i64; 64]; 6],
+    pub eg_psts: [[i64; 64]; 6],
 }
 
 impl Default for EvalParams {
@@ -29,8 +29,8 @@ impl Default for EvalParams {
             isolated_pawn_eg: ISOLATED_PAWN_EG,
             passed_pawn_mg: PASSED_PAWN_MG,
             passed_pawn_eg: PASSED_PAWN_EG,
-            mg_pawn_pst: MG_PAWN_PST,
-            eg_pawn_pst: EG_PAWN_PST,
+            mg_psts: MG_PSTS,
+            eg_psts: EG_PSTS,
         }
     }
 }
@@ -53,11 +53,11 @@ pub fn eval_with_params(board: &Board, params: &EvalParams) -> i64 {
     let mut score = 0;
 
     for (piece, bb) in board.piece_bb[0].iter().enumerate() {
-        score += calc_tapered_score_with_params(piece, mg_phase, *bb, 56, &params.mg_pawn_pst, &params.eg_pawn_pst);
+        score += calc_tapered_score_with_params(piece, mg_phase, *bb, 56, &params.mg_psts, &params.eg_psts);
     }
 
     for (piece, bb) in board.piece_bb[1].iter().enumerate() {
-        score -= calc_tapered_score_with_params(piece, mg_phase, *bb, 0, &params.mg_pawn_pst, &params.eg_pawn_pst);
+        score -= calc_tapered_score_with_params(piece, mg_phase, *bb, 0, &params.mg_psts, &params.eg_psts);
     }
 
     // Isolated pawn penalties

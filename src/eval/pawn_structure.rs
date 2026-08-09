@@ -34,11 +34,11 @@ pub const FILE_MASKS: [Bitboard; 8] = [
 pub(super) const ISOLATED_PAWN_MG: i64 = -16;
 pub(super) const ISOLATED_PAWN_EG: i64 = -8;
 
-pub(super) const PASSED_PAWN_MG: [i64; 8] = [0, 0, 31, 5, 11, -14, 20, 0];
-pub(super) const PASSED_PAWN_EG: [i64; 8] = [0, 0, 70, 53, 25, 31, 11, 0];
+pub(super) const PASSED_PAWN_MG: [i64; 8] = [0, 0, 5, 10, 15, 20, 30, 0]; //source: I made it up.
+pub(super) const PASSED_PAWN_EG: [i64; 8] = [0, 0, 10, 15, 20, 30, 40, 0]; //source: I made it up.
 
-pub(super) const DOUBLED_PAWN_MG: [i64; 4] = [-9, -10, -8, -3];
-pub(super) const DOUBLED_PAWN_EG: [i64; 4] = [-12, -8, -10, -4];
+pub(super) const DOUBLED_PAWN_MG: [i64; 4] = [-5, 0, -10, -15]; //source: I made it up.
+pub(super) const DOUBLED_PAWN_EG: [i64; 4] = [0, -10, -5, -40]; //source: I made it up.
 
 const fn generate_passed_pawn_mask(color: usize, sq: usize) -> u64 {
     let rank = sq / 8;

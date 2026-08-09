@@ -135,4 +135,4 @@ fn standard_eval(piece: usize, board: &Board, score: &mut i64, phase: i64, param
 
     *score += calc_tapered_score_with_params(piece, phase, white, 56, &params.mg_piece_values, &params.eg_piece_values, &params.mg_psts, &params.eg_psts);
     *score -= calc_tapered_score_with_params(piece, phase, black, 0, &params.mg_piece_values, &params.eg_piece_values, &params.mg_psts, &params.eg_psts);
-}
+}

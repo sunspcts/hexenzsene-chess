@@ -18,6 +18,8 @@ pub struct EvalParams {
     pub isolated_pawn_eg: i64,
     pub passed_pawn_mg: [i64; 8],
     pub passed_pawn_eg: [i64; 8],
+    pub mg_piece_values: [i64; 6],
+    pub eg_piece_values: [i64; 6],
     pub mg_psts: [[i64; 64]; 6],
     pub eg_psts: [[i64; 64]; 6],
 }
@@ -29,6 +31,8 @@ impl Default for EvalParams {
             isolated_pawn_eg: ISOLATED_PAWN_EG,
             passed_pawn_mg: PASSED_PAWN_MG,
             passed_pawn_eg: PASSED_PAWN_EG,
+            mg_piece_values: MG_PIECE_VALUES,
+            eg_piece_values: EG_PIECE_VALUES,
             mg_psts: MG_PSTS,
             eg_psts: EG_PSTS,
         }
@@ -53,11 +57,11 @@ pub fn eval_with_params(board: &Board, params: &EvalParams) -> i64 {
     let mut score = 0;
 
     for (piece, bb) in board.piece_bb[0].iter().enumerate() {
-        score += calc_tapered_score_with_params(piece, mg_phase, *bb, 56, &params.mg_psts, &params.eg_psts);
+        score += calc_tapered_score_with_params(piece, mg_phase, *bb, 56, &params.mg_piece_values, &params.eg_piece_values, &params.mg_psts, &params.eg_psts);
     }
 
     for (piece, bb) in board.piece_bb[1].iter().enumerate() {
-        score -= calc_tapered_score_with_params(piece, mg_phase, *bb, 0, &params.mg_psts, &params.eg_psts);
+        score -= calc_tapered_score_with_params(piece, mg_phase, *bb, 0, &params.mg_piece_values, &params.eg_piece_values, &params.mg_psts, &params.eg_psts);
     }
 
     // Isolated pawn penalties

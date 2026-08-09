@@ -148,17 +148,19 @@ pub(super) fn calc_tapered_score_with_params(
     mg_phase: i64,
     bitboard: Bitboard,
     magic: u16,
+    mg_piece_values: &[i64; 6],
+    eg_piece_values: &[i64; 6],
     mg_psts: &[[i64; 64]; 6],
     eg_psts: &[[i64; 64]; 6],
 ) -> i64 {
     let mut mg_score = 0;
-    let mg_val = MG_PIECE_VALUES[piece];
+    let mg_val = mg_piece_values[piece];
     for sq in bitboard {
         mg_score += mg_val + mg_psts[piece][(sq ^ magic) as usize];
     }
 
     let mut eg_score = 0;
-    let eg_val = EG_PIECE_VALUES[piece];
+    let eg_val = eg_piece_values[piece];
     for sq in bitboard {
         eg_score += eg_val + eg_psts[piece][(sq ^ magic) as usize];
     }

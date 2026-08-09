@@ -139,8 +139,8 @@ pub(super) const EG_PSTS: [[i64; 64]; 6] = [EG_PAWN_PST, EG_KNIGHT_PST, EG_BISHO
 pub(super) const PIECE_PHASE: [i64; 6] = [0, 1, 1, 2, 4, 0];
 pub(super) const MAX_PHASE: i64 = 24;
 
-pub(super) const MG_PIECE_VALUES: [i64; 6] = [82, 337, 365, 477, 1025, 0];
-pub(super) const EG_PIECE_VALUES: [i64; 6] = [94, 281, 297, 512, 936, 0];
+pub(super) const MG_PIECE_VALUES: [i64; 6] = [81, 337, 366, 477, 1025, 0];
+pub(super) const EG_PIECE_VALUES: [i64; 6] = [90, 279, 296, 515, 937, 0];
 
 
 pub(super) fn calc_tapered_score_with_params(

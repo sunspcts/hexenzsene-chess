@@ -5,11 +5,11 @@ use psts::*;
 use pawn_structure::*;
 use crate::{board::Board, piece::Piece};
 
-const ISOLATED_PAWN_MG: i64 = -14;
-const ISOLATED_PAWN_EG: i64 = -8;
+const ISOLATED_PAWN_MG: i64 = -16;
+const ISOLATED_PAWN_EG: i64 = -10;
 
-const PASSED_PAWN_MG: [i64; 8] = [0, 0, 8, -8, 17, 11, 25, 0];
-const PASSED_PAWN_EG: [i64; 8] = [0, 0, 0, 24, 49, 105, 40, 0];
+const PASSED_PAWN_MG: [i64; 8] = [0, 0, 8, -7, 16, 10, 25, 0];
+const PASSED_PAWN_EG: [i64; 8] = [0, 0, 2, 26, 50, 104, 39, 0];
 
 //useful to allow tuning routines to fuck with the params.
 #[derive(Clone, Copy)]

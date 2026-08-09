@@ -1,18 +1,12 @@
 mod psts;
 mod pawn_structure;
+mod mobility;
 
 use psts::*;
 use pawn_structure::*;
-use crate::{board::Board, piece::Piece};
+use mobility::*;
 
-const ISOLATED_PAWN_MG: i64 = -16;
-const ISOLATED_PAWN_EG: i64 = -8;
-
-const PASSED_PAWN_MG: [i64; 8] = [0, 0, 31, 5, 11, -14, 20, 0];
-const PASSED_PAWN_EG: [i64; 8] = [0, 0, 70, 53, 25, 31, 11, 0];
-
-const DOUBLED_PAWN_MG: [i64; 4] = [-9, -10, -8, -3];
-const DOUBLED_PAWN_EG: [i64; 4] = [-12, -8, -10, -4];
+use crate::board::Board;
 
 //useful to allow tuning routines to fuck with the params.
 #[derive(Clone, Copy)]
@@ -27,6 +21,7 @@ pub struct EvalParams {
     pub eg_piece_values: [i64; 6],
     pub mg_psts: [[i64; 64]; 6],
     pub eg_psts: [[i64; 64]; 6],
+    pub knight_mobility: [i64; 9],
 }
 
 impl Default for EvalParams {
@@ -42,6 +37,7 @@ impl Default for EvalParams {
             eg_piece_values: EG_PIECE_VALUES,
             mg_psts: MG_PSTS,
             eg_psts: EG_PSTS,
+            knight_mobility: KNIGHT_MOBILITY,
         }
     }
 }
@@ -52,73 +48,85 @@ pub fn eval(board: &Board) -> i64 {
 
 #[inline]
 pub fn eval_with_params(board: &Board, params: &EvalParams) -> i64 {
+    // Game phase is calculated as (QUEENS * 4 + ROOKS * 2 + BISHOPS + KNIGHTS)
     let mut phase = 0;
     for color in 0..2 {
         for (piece, bb) in board.piece_bb[color].iter().enumerate() {
             phase += PIECE_PHASE[piece] * bb.count_ones() as i64;
         }
     }
-    let mg_phase = phase.min(MAX_PHASE);
-    let eg_phase = MAX_PHASE - mg_phase;
+
+    phase = phase.min(MAX_PHASE);
 
     let mut score = 0;
 
-    for (piece, bb) in board.piece_bb[0].iter().enumerate() {
-        score += calc_tapered_score_with_params(piece, mg_phase, *bb, 56, &params.mg_piece_values, &params.eg_piece_values, &params.mg_psts, &params.eg_psts);
+    pawn_eval(board, &mut score, phase, params);
+    knight_eval(board, &mut score, phase, params);
+
+    for p in 2..6 {
+        standard_eval(p, board, &mut score, phase, params);
     }
 
-    for (piece, bb) in board.piece_bb[1].iter().enumerate() {
-        score -= calc_tapered_score_with_params(piece, mg_phase, *bb, 0, &params.mg_piece_values, &params.eg_piece_values, &params.mg_psts, &params.eg_psts);
-    }
+    score * board.side_to_move_multiplier()
+}
 
-    // Isolated pawn penalties
-    let white_pawns = board.piece_bb[0][Piece::Pawn as usize];
-    for sq in white_pawns {
-        if is_isolated(sq, white_pawns) {
-            score += (params.isolated_pawn_mg * mg_phase + params.isolated_pawn_eg * eg_phase) / MAX_PHASE;
+#[inline]
+fn pawn_eval(board: &Board, score: &mut i64, phase: i64, params: &EvalParams) {
+    let white = board.piece_bb[0][0]; let black = board.piece_bb[1][0];
+    let eg_phase = MAX_PHASE - phase;
+    *score += calc_tapered_score_with_params(0, phase, white, 56, &params.mg_piece_values, &params.eg_piece_values, &params.mg_psts, &params.eg_psts);
+    *score -= calc_tapered_score_with_params(0, phase, black, 0, &params.mg_piece_values, &params.eg_piece_values, &params.mg_psts, &params.eg_psts);
+
+    for sq in white {
+        if is_isolated(sq, white) {
+            *score += (params.isolated_pawn_mg * phase + params.isolated_pawn_eg * eg_phase) / MAX_PHASE;
         }
-    }
-
-    let black_pawns = board.piece_bb[1][Piece::Pawn as usize];
-    for sq in black_pawns {
-        if is_isolated(sq, black_pawns) {
-            score -= (params.isolated_pawn_mg * mg_phase + params.isolated_pawn_eg * eg_phase) / MAX_PHASE;
-        }
-    }
-
-    // Passed pawn bonuses
-    for sq in white_pawns {
-        if is_passed(sq, 0, black_pawns) {
+        if is_passed(sq, 0, black) {
             let rank = (7 - (sq / 8)) as usize;
-            score += (params.passed_pawn_mg[rank] * mg_phase + params.passed_pawn_eg[rank] * eg_phase) / MAX_PHASE;
+            *score += (params.passed_pawn_mg[rank] * phase + params.passed_pawn_eg[rank] * eg_phase) / MAX_PHASE;
         }
     }
-
-    for sq in black_pawns {
-        if is_passed(sq, 1, white_pawns) {
+    for sq in black {
+        if is_isolated(sq, black) {
+            *score -= (params.isolated_pawn_mg * phase + params.isolated_pawn_eg * eg_phase) / MAX_PHASE;
+        }
+        if is_passed(sq, 1, white) {
             let rank = (sq / 8) as usize;
-            score -= (params.passed_pawn_mg[rank] * mg_phase + params.passed_pawn_eg[rank] * eg_phase) / MAX_PHASE;
+            *score -= (params.passed_pawn_mg[rank] * phase + params.passed_pawn_eg[rank] * eg_phase) / MAX_PHASE;
         }
     }
 
-    // Doubled pawn penalties
     for f in 0..8 {
         let file_mask = FILE_MASKS[f];
-        let white_count = (white_pawns & file_mask).count_ones() as i64;
+        let white_count = (white & file_mask).count_ones() as i64;
 
         let group = if f < 4 { f } else { 7 - f };
 
         if white_count > 1 {
             let count = white_count - 1;
-            score += count * (params.doubled_pawn_mg[group] * mg_phase + params.doubled_pawn_eg[group] * eg_phase) / MAX_PHASE;
+            *score += count * (params.doubled_pawn_mg[group] * phase + params.doubled_pawn_eg[group] * eg_phase) / MAX_PHASE;
         }
 
-        let black_count = (black_pawns & file_mask).count_ones() as i64;
+        let black_count = (black & file_mask).count_ones() as i64;
         if black_count > 1 {
             let count = black_count - 1;
-            score -= count * (params.doubled_pawn_mg[group] * mg_phase + params.doubled_pawn_eg[group] * eg_phase) / MAX_PHASE;
+            *score -= count * (params.doubled_pawn_mg[group] * phase + params.doubled_pawn_eg[group] * eg_phase) / MAX_PHASE;
         }
     }
+}
 
-    score * board.side_to_move_multiplier()
+fn knight_eval(board: &Board, score: &mut i64, phase: i64, params: &EvalParams) {
+    let white = board.piece_bb[0][1]; let black = board.piece_bb[1][1];
+
+    *score += calc_tapered_score_with_params(1, phase, white, 56, &params.mg_piece_values, &params.eg_piece_values, &params.mg_psts, &params.eg_psts);
+    *score -= calc_tapered_score_with_params(1, phase, black, 0, &params.mg_piece_values, &params.eg_piece_values, &params.mg_psts, &params.eg_psts);
+
+    *score += knight_mobility_score(board, &params.knight_mobility);
+}
+
+fn standard_eval(piece: usize, board: &Board, score: &mut i64, phase: i64, params: &EvalParams) {
+    let white = board.piece_bb[0][piece]; let black = board.piece_bb[1][piece];
+
+    *score += calc_tapered_score_with_params(piece, phase, white, 56, &params.mg_piece_values, &params.eg_piece_values, &params.mg_psts, &params.eg_psts);
+    *score -= calc_tapered_score_with_params(piece, phase, black, 0, &params.mg_piece_values, &params.eg_piece_values, &params.mg_psts, &params.eg_psts);
 }

@@ -20,6 +20,17 @@ const ADJACENT_FILE_MASKS: [Bitboard; 8] = [
     Bitboard::new(FILE_G)
 ];
 
+pub const FILE_MASKS: [Bitboard; 8] = [
+    Bitboard::new(FILE_A),
+    Bitboard::new(FILE_B),
+    Bitboard::new(FILE_C),
+    Bitboard::new(FILE_D),
+    Bitboard::new(FILE_E),
+    Bitboard::new(FILE_F),
+    Bitboard::new(FILE_G),
+    Bitboard::new(FILE_H),
+];
+
 const fn generate_passed_pawn_mask(color: usize, sq: usize) -> u64 {
     let rank = sq / 8;
     let file = sq % 8;

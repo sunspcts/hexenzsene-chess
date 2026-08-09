@@ -5,14 +5,14 @@ use psts::*;
 use pawn_structure::*;
 use crate::{board::Board, piece::Piece};
 
-const ISOLATED_PAWN_MG: i64 = -17;
-const ISOLATED_PAWN_EG: i64 = -10;
+const ISOLATED_PAWN_MG: i64 = -16;
+const ISOLATED_PAWN_EG: i64 = -8;
 
-const PASSED_PAWN_MG: [i64; 8] = [0, 0, 25, 0, 8, -7, 23, 0];
-const PASSED_PAWN_EG: [i64; 8] = [0, 0, 47, 47, 31, 55, 22, 0];
+const PASSED_PAWN_MG: [i64; 8] = [0, 0, 31, 5, 11, -14, 20, 0];
+const PASSED_PAWN_EG: [i64; 8] = [0, 0, 70, 53, 25, 31, 11, 0];
 
-const DOUBLED_PAWN_MG: [i64; 4] = [-11, -9, -6, -4]; // Group 0 (A/H), 1 (B/G), 2 (C/F), 3 (D/E)
-const DOUBLED_PAWN_EG: [i64; 4] = [-14, -11, -8, -6];
+const DOUBLED_PAWN_MG: [i64; 4] = [-9, -10, -8, -3];
+const DOUBLED_PAWN_EG: [i64; 4] = [-12, -8, -10, -4];
 
 //useful to allow tuning routines to fuck with the params.
 #[derive(Clone, Copy)]
@@ -101,19 +101,20 @@ pub fn eval_with_params(board: &Board, params: &EvalParams) -> i64 {
         }
     }
 
-    // Doubled pawn penalties (symmetric file groups: 0 = A/H, 1 = B/G, 2 = C/F, 3 = D/E)
+    // Doubled pawn penalties
     for f in 0..8 {
         let file_mask = FILE_MASKS[f];
         let white_count = (white_pawns & file_mask).count_ones() as i64;
+
+        let group = if f < 4 { f } else { 7 - f };
+
         if white_count > 1 {
-            let group = if f < 4 { f } else { 7 - f };
             let count = white_count - 1;
             score += count * (params.doubled_pawn_mg[group] * mg_phase + params.doubled_pawn_eg[group] * eg_phase) / MAX_PHASE;
         }
 
         let black_count = (black_pawns & file_mask).count_ones() as i64;
         if black_count > 1 {
-            let group = if f < 4 { f } else { 7 - f };
             let count = black_count - 1;
             score -= count * (params.doubled_pawn_mg[group] * mg_phase + params.doubled_pawn_eg[group] * eg_phase) / MAX_PHASE;
         }

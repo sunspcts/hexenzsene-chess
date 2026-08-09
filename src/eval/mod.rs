@@ -82,14 +82,14 @@ pub fn eval_with_params(board: &Board, params: &EvalParams) -> i64 {
     // Passed pawn bonuses
     for sq in white_pawns {
         if is_passed(sq, 0, black_pawns) {
-            let rank = (sq / 8) as usize;
+            let rank = (7 - (sq / 8)) as usize;
             score += (params.passed_pawn_mg[rank] * mg_phase + params.passed_pawn_eg[rank] * eg_phase) / MAX_PHASE;
         }
     }
 
     for sq in black_pawns {
         if is_passed(sq, 1, white_pawns) {
-            let rank = (7 - (sq / 8)) as usize;
+            let rank = (sq / 8) as usize;
             score -= (params.passed_pawn_mg[rank] * mg_phase + params.passed_pawn_eg[rank] * eg_phase) / MAX_PHASE;
         }
     }

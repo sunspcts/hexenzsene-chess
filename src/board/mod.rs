@@ -17,7 +17,7 @@ pub const ZOBRIST_RANDOMS: [u64; 793] = init_zobrist_random_array();
 const fn init_zobrist_random_array() -> [u64; 793] {
     let mut arr = [0; 793];
     let mut i = 0;
-    let mut state = 0x67676767;  // six seven !!
+    let mut state = 0x67676767;  // arbitrary.
 
     while i < 100 {
         state = xorshift(state); // quick mix
@@ -34,6 +34,7 @@ const fn init_zobrist_random_array() -> [u64; 793] {
     arr
 }
 
+// Xorshift is totally fine! Doesn't need to be a CSPRNG. Also, Rust allows this to run at compile time, which is very important.
 const fn xorshift(mut state: u64) -> u64 {
     state ^= state << 13;
     state ^= state >> 7;
@@ -69,6 +70,7 @@ pub struct Board {
     mailbox: [Piece; 64]
 }
 
+// VERY useful to be able to just index the board like this.
 impl std::ops::Index<u16> for Board {
     type Output = Piece;
 
@@ -84,6 +86,8 @@ impl std::ops::IndexMut<u16> for Board {
 }
 
 impl Board {
+
+    // Only called during initial zobrist hash computation.
     fn get_side_at(&self, square: u16) -> Option<Side> {
         let mask = Bitboard::new(1 << square);
         if (self.side_bb[0] & mask) != Bitboard::zero() {
@@ -94,9 +98,13 @@ impl Board {
         None
     }
 
+    // TODO: Rewrite this maybe? Might be unnecessary. Profiling will tell me :)
     pub fn is_attacked(&self, square: u16, attacker_side: Side) -> bool {
         let attacker = attacker_side as usize;
         let defender = (attacker_side as usize) ^ 1;
+
+        // This function assumes a "super-piece" on square, generates attacks from the super-piece rather than from the opponent pieces themselves.
+        // Saves extremely costly iteration over every piece on the board .
 
         let enemy_knights = self.piece_bb[attacker][Piece::Knight as usize];
         if (KNIGHT_ATTACKS[square as usize] & enemy_knights) != Bitboard::zero() {
@@ -125,6 +133,7 @@ impl Board {
         false
     }
 
+    // Computes the zobrist hash from scratch using bitboards and game state.
     fn recompute_zobrist_hash(&mut self) {
         let mut key = 0;
         for sq in 0..64 {
@@ -176,6 +185,7 @@ impl Board {
         }
     }
 
+    // I can probably use a simplified function compared to is_attacked for this.
     pub fn is_in_check(&self) -> bool {
         let side = self.game_state.active_side;
         let king_bb = self.piece_bb[side as usize][Piece::King as usize];

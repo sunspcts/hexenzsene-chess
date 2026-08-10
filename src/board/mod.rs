@@ -3,10 +3,11 @@
 mod init;
 mod state;
 mod null_moves;
+
 #[cfg(test)]
 mod tests;
 
-use crate::{attacks::{KING_ATTACKS, KNIGHT_ATTACKS, PAWN_ATTACKS}, bitboard::Bitboard, piece::Piece};
+use crate::{movegen::attacks::{KING_ATTACKS, KNIGHT_ATTACKS, PAWN_ATTACKS}, bitboard::Bitboard, piece::Piece};
 
 // CONSTANT VALUES
 
@@ -113,12 +114,12 @@ impl Board {
         }
 
         let diagonal_attackers = self.piece_bb[attacker][Piece::Bishop as usize] | self.piece_bb[attacker][Piece::Queen as usize];
-        if (self.get_bishop_attacks(square, defender) & diagonal_attackers) != Bitboard::zero() {
+        if (self.get_bishop_attacks(square) & diagonal_attackers) != Bitboard::zero() {
             return true;
         }
 
         let orthogonal_attackers = self.piece_bb[attacker][Piece::Rook as usize] | self.piece_bb[attacker][Piece::Queen as usize];
-        if (self.get_rook_attacks(square, defender) & orthogonal_attackers) != Bitboard::zero() {
+        if (self.get_rook_attacks(square) & orthogonal_attackers) != Bitboard::zero() {
             return true;
         }
         false

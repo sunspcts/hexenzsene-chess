@@ -1,4 +1,3 @@
-mod attacks;
 mod bitboard;
 mod board;
 mod engine;

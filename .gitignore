@@ -4,3 +4,5 @@ profile.json.gz
 # fastchess just loves to dump its config wherever you run it from, huh.
 config.json
 quiet-labeled.epd
+.vscode/launch.json
+TODO.md

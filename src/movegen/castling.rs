@@ -2,6 +2,15 @@ use super::*;
 
 use crate::{moves::MoveList, piece::Piece, bitboard::Bitboard};
 
+// This could surely be less branchy, but I can't think of a nice way to do it.
+
+// CONVENTION
+// (indexed from lsb) 
+// bit 0 - White Kingside Castling
+// bit 1 - White Queenside Castling
+// bit 2 - Black Kingside Castling
+// bit 3 - Black Queenside Castling
+
 impl Board {
     pub fn generate_castling_moves(
         &self,
@@ -11,12 +20,14 @@ impl Board {
         let all_pieces = self.side_bb[0] | self.side_bb[1];
 
         if side == Side::White {
-            if self.game_state.castling & 1 != 0 {
+            //Can Castle Kingside
+            if self.game_state.castling & 0b0001 != 0 {
                 if (all_pieces & Bitboard::new(0x60)) == Bitboard::zero() {
                     moves.push(Move::new(self, 4, 6, move_flags::KING_CASTLE, Piece::King)); // E1 to G1
                 }
             }
-            if self.game_state.castling & 2 != 0 {
+            //Can Castle Queenside
+            if self.game_state.castling & 0b0010 != 0 {
                 if (all_pieces & Bitboard::new(0x0E)) == Bitboard::zero() {
                     moves.push(Move::new(self, 4, 2, move_flags::QUEEN_CASTLE, Piece::King)); // E1 to C1
                 }

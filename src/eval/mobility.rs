@@ -1,4 +1,4 @@
-use crate::{attacks::KNIGHT_ATTACKS, bitboard::Bitboard, board::Board, piece::Piece};
+use crate::{movegen::attacks::KNIGHT_ATTACKS, bitboard::Bitboard, board::Board, piece::Piece};
 
 pub const KNIGHT_MOBILITY_MG: [i64; 9] = [-13, -7, -1, -2, 1, 4, 7, 7, 9]; // "tuned". idk.
 pub const KNIGHT_MOBILITY_EG: [i64; 9] = [-17, -11, -4, 2, 5, 9, 9, 13, 15]; 

@@ -1,3 +1,4 @@
+pub mod attacks;
 mod pawns;
 mod leapers;
 mod sliders;

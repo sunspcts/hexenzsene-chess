@@ -99,6 +99,8 @@ pub fn engine() {
                         tt: &mut *tt_guard,
                         killers: [[0; 2]; crate::search::MAX_PLY],
                         history: [[[0; 64]; 64]; 2],
+                        pv_table: [[Move::new_from_raw(0); crate::search::MAX_PLY]; crate::search::MAX_PLY],
+                        pv_length: [0; crate::search::MAX_PLY],
                     };
 
                     let (_score, best_move) = search(&new_board, max_depth, &mut env);

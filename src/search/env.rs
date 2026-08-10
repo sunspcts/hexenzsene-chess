@@ -16,9 +16,27 @@ pub struct SearchEnv<'a> {
     pub killers: [[u16; 2]; MAX_PLY],
     pub history: [[[i32; 64]; 64]; 2],
     pub move_lists: [MoveList; MAX_PLY],
+    pub pv_table: [[Move; MAX_PLY]; MAX_PLY],
+    pub pv_length: [usize; MAX_PLY],
 }
 
 impl<'a> SearchEnv<'a> {
+    pub fn format_pv(&self) -> String {
+        let len = self.pv_length[0];
+        let mut pv_str = String::new();
+        for i in 0..len {
+            let mv = self.pv_table[0][i];
+            if mv.data() == 0 {
+                break;
+            }
+            if i > 0 {
+                pv_str.push(' ');
+            }
+            pv_str.push_str(&format!("{}", mv));
+        }
+        pv_str
+    }
+
     #[inline(always)]
     pub fn is_repetition(&self, key: u64, half_moves: usize) -> bool {
         self.hash_history.iter().rev().take(half_moves).any(|&k| k == key)
@@ -45,17 +63,19 @@ pub(super) struct SearchContext {
     pub beta: i64,
     pub ply: i64,
     pub depth: i64,
+    pub is_pv: bool,
     #[allow(dead_code)]
     pub nmp_allowed: bool,
 }
 
 impl SearchContext {
-    pub fn next_context(&self, depth: i64) -> Self {
+    pub fn next_context(&self, depth: i64, is_pv: bool) -> Self {
         SearchContext {
             alpha: -self.beta,
             beta: -self.alpha,
             ply: self.ply + 1,
             depth,
+            is_pv,
             nmp_allowed: true
         }
     }
@@ -85,6 +105,7 @@ impl SearchContext {
             beta: -self.alpha,
             ply: self.ply + 1,
             depth,
+            is_pv: false,
             nmp_allowed: true
         }
     }

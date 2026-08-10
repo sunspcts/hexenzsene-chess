@@ -3,10 +3,17 @@ use crate::{board::Board, heuristics::calc_mvv_lva_heuristic, moves::move_flags}
 use super::*;
 
 impl MoveList {
-    pub fn score_moves(&mut self, board: &Board, tt_move: Option<Move>, killers: &[u16], history: &[[[i32; 64]; 64]; 2]) {
+    pub fn score_moves(
+        &mut self,
+        board: &Board,
+        pv_move: Option<Move>,
+        tt_move: Option<Move>,
+        killers: &[u16],
+        history: &[[[i32; 64]; 64]; 2],
+    ) {
         let len = self.len as usize;
         for i in 0..len {
-            self.scores[i] = score_move(self.moves[i], tt_move, killers, history, board);
+            self.scores[i] = score_move(self.moves[i], pv_move, tt_move, killers, history, board);
         }
     }
 
@@ -41,13 +48,17 @@ impl MoveList {
 #[inline]
 fn score_move(
     mv: Move,
+    pv_move: Option<Move>,
     tt_move: Option<Move>,
     killers: &[u16],
     history: &[[[i32; 64]; 64]; 2],
     board: &Board,
 ) -> i16 {
-    if Some(mv) == tt_move {
+    if Some(mv) == pv_move {
         return i16::MAX;
+    }
+    if Some(mv) == tt_move {
+        return i16::MAX - 1;
     }
     if mv.flags() & move_flags::QUEEN_PROMO == move_flags::QUEEN_PROMO {
         return 20000;

@@ -3,6 +3,10 @@ use super::*;
 use crate::{board::Board};
 
 pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut SearchEnv) -> i64 {
+    let ply = (context.ply as usize).min(MAX_PLY - 1);
+    env.pv_length[ply] = 0;
+    env.pv_table[ply][0] = Move::new_from_raw(0);
+
     if env.step_node_and_check() { return 0; }
 
     if context.ply > 0 && env.is_repetition(board.game_state.curr_zobrist_key, board.game_state.half_moves as usize) {
@@ -25,9 +29,14 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
         }
     }
 
-    let ply = (context.ply as usize).min(MAX_PLY - 1);
+    let pv_move = if context.is_pv && ply < env.pv_length[0] && env.pv_table[0][ply].data() != 0 {
+        Some(env.pv_table[0][ply])
+    } else {
+        None
+    };
+
     board.generate_pseudolegal_moves(&mut env.move_lists[ply]);
-    env.move_lists[ply].score_moves(board, tt_move, &env.killers[ply], &env.history);
+    env.move_lists[ply].score_moves(board, pv_move, tt_move, &env.killers[ply], &env.history);
     let moves_count = env.move_lists[ply].len();
 
     let mut legal_moves_count = 0;
@@ -52,11 +61,11 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
             env.hash_history.push(board.game_state.curr_zobrist_key);
 
             let score = if legal_moves_count == 1 {
-                -negamax(&next_board, context.next_context(depth - 1), env)
+                -negamax(&next_board, context.next_context(depth - 1, context.is_pv), env)
             } else {
                 let mut s = -negamax(&next_board, context.next_context_null_window(depth - 1), env);
                 if s > context.alpha && s < context.beta {
-                    s = -negamax(&next_board, context.next_context(depth - 1), env);
+                    s = -negamax(&next_board, context.next_context(depth - 1, context.is_pv), env);
                 }
                 s
             };
@@ -72,7 +81,22 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
                 best_move = Some(candidate_move);
             }
 
-            if context.update_alpha(score) {
+            if score > context.alpha {
+                context.alpha = score;
+
+                let next_ply = (ply + 1).min(MAX_PLY - 1);
+                let child_len = env.pv_length[next_ply];
+                env.pv_table[ply][0] = candidate_move;
+                for j in 0..child_len {
+                    env.pv_table[ply][1 + j] = env.pv_table[next_ply][j];
+                }
+                if 1 + child_len < MAX_PLY {
+                    env.pv_table[ply][1 + child_len] = Move::new_from_raw(0);
+                }
+                env.pv_length[ply] = 1 + child_len;
+            }
+
+            if score >= context.beta {
                 if is_quiet {
                     if candidate_move.data() != env.killers[ply][0] {
                         env.killers[ply][1] = env.killers[ply][0];

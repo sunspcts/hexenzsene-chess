@@ -21,13 +21,6 @@ pub struct TTEntry {
     pub age: u8,
 }
 
-#[derive(Clone, Copy, Default)]
-pub struct PTEntry {
-    pub key: u64,
-    pub mg_score: i16,
-    pub eg_score: i16,
-}
-
 #[inline(always)]
 pub fn score_to_tt(score: i64, ply: i64) -> i16 {
     if score > MATE_EVAL - 1000 {
@@ -136,8 +129,4 @@ impl TT {
         }
         self.entries[index] = entry;
     }
-}
-
-pub struct PT {
-    entries: Vec<PTEntry>,
 }

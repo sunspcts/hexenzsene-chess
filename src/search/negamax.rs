@@ -9,7 +9,7 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
 
     if env.step_node_and_check() { return 0; }
 
-    if context.ply > 0 && env.is_repetition(board.game_state.curr_zobrist_key, board.game_state.half_moves as usize) {
+    if context.ply > 0 && (board.game_state.half_moves >= 100 || env.is_repetition(board.game_state.curr_zobrist_key, board.game_state.half_moves as usize)) {
         return 0;
     }
 

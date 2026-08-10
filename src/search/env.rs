@@ -78,6 +78,16 @@ impl SearchContext {
             NodeType::UpperBound
         }
     }
+
+    pub fn next_context_null_window(&self, depth: i64) -> Self {
+        SearchContext {
+            alpha: -self.alpha - 1,
+            beta: -self.alpha,
+            ply: self.ply + 1,
+            depth,
+            nmp_allowed: true
+        }
+    }
 }
 
 #[derive(Clone)]

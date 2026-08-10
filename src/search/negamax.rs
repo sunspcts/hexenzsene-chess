@@ -50,7 +50,17 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
             }
 
             env.hash_history.push(board.game_state.curr_zobrist_key);
-            let score = -negamax(&next_board, context.next_context(depth - 1), env);
+
+            let score = if legal_moves_count == 1 {
+                -negamax(&next_board, context.next_context(depth - 1), env)
+            } else {
+                let mut s = -negamax(&next_board, context.next_context_null_window(depth - 1), env);
+                if s > context.alpha && s < context.beta {
+                    s = -negamax(&next_board, context.next_context(depth - 1), env);
+                }
+                s
+            };
+
             env.hash_history.pop();
 
             if env.stopped {

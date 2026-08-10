@@ -127,6 +127,10 @@ pub fn get_ray_attacks(sq: u16, dir: usize, occupancy: Bitboard) -> Bitboard {
     let ray = RAYS[dir][sq as usize];
     let blockers = ray & occupancy;
 
+    if blockers == Bitboard::zero() {
+        return ray
+    }
+    
     /* In our quest to avoid any branching whatsoever, we reach this utter bullshit. 
     N, E, NE, and NW are considered "positive" ray directions, since to move a piece 
     in these directions we shift our bitboard left.
@@ -137,8 +141,8 @@ pub fn get_ray_attacks(sq: u16, dir: usize, occupancy: Bitboard) -> Bitboard {
     bitscan. Similarly, we find the index of the first blocking piece for a negative ray
     by doing a backward bitscan.*/ 
 
-    let blocker_sq_pos = blockers.trailing_zeros() as usize; // if blockers = 0, this is 64. We handle this later.
-    let blocker_sq_neg = 63 ^ (blockers.leading_zeros() as usize); // if blockers = 0, this is 127. We handle this later.
+    let blocker_sq_pos = blockers.trailing_zeros() as usize;
+    let blocker_sq_neg = 63 ^ (blockers.leading_zeros() as usize); 
 
     // This lookup table assigns positive rays an identity mask, and negative rays a null mask.
     let mask = IS_POS_DIR[dir];
@@ -147,11 +151,7 @@ pub fn get_ray_attacks(sq: u16, dir: usize, occupancy: Bitboard) -> Bitboard {
     blocker_sq = blocker_sq_pos. If negative the opposite is true. */
     let blocker_sq = (blocker_sq_pos & mask) | (blocker_sq_neg & !mask);
     
-    // Cast a ray from the blocking piece. (Clamped down to 63.)
-    let shadow = RAYS[dir][blocker_sq & 63]; 
-
-    // If bit 6 is set, there are no blockers, so the shadow is 0.
-    let shadow_fixed = [shadow, Bitboard::zero()][blocker_sq_pos >> 6]; 
-
-    ray ^ shadow_fixed
+    // Cast a ray from the blocking piece.
+    let shadow = RAYS[dir][blocker_sq]; 
+    ray ^ shadow
 }

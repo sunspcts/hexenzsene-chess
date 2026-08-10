@@ -14,7 +14,10 @@ impl Board {
         moves.clear();
         let side = self.game_state.active_side;
         self.generate_pawn_moves(moves);
-        self.generate_castling_moves(moves);
+
+        if self.game_state.castling != 0 {
+            self.generate_castling_moves(moves);
+        }
 
         // Might eventually move these loops into the methods.
         for king in self.piece_bb[side as usize][Piece::King as usize] {

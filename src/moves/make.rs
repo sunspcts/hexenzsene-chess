@@ -54,7 +54,6 @@ impl Board {
             board.remove_piece(side, piece, from);
 
             // Promotion handling!
-
             let piece_to_place = if mv.is_promo() {
                 promo_flag_parser(flags)
             } else {
@@ -123,6 +122,7 @@ impl Board {
         self.side_bb[side_idx] ^= mask;
         self[sq] = Piece::None;
 
+        //gotta update the hash.
         let zobrist_idx = get_piece_zobrist_index(piece, side, sq as usize);
         self.game_state.curr_zobrist_key ^= ZOBRIST_RANDOMS[zobrist_idx];
 
@@ -179,7 +179,6 @@ impl Board {
         nodes
     }
 }
-
 
 // another nice helper!
 fn promo_flag_parser(flag: u16) -> Piece {

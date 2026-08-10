@@ -7,12 +7,6 @@ mod movelist;
 pub mod format;
 
 pub use movelist::MoveList;
-// Data field is structured as follows:
-// First 4 bits encode any flags that make_move needs to know.
-// Next 6 bits represent the square the piece is moving to.
-// Lowest 6 bits represent the square the piece is moving from.
-
-// Heuristics are calculated at movegen, which I might change.
 
 // flags from https://www.chessprogramming.org/Encoding_Moves.
 #[allow(dead_code)]
@@ -35,6 +29,12 @@ pub mod move_flags {
     pub const ROOK_PROMO_CAPTURE: u16   = 0b1110;
     pub const QUEEN_PROMO_CAPTURE: u16  = 0b1111;
 }
+
+// CONVENTION
+// (indexed from lsb) 
+// Bits 0-5: from_sq
+// Bits 6-11: to_sq 
+// Bits 12-15: move flags (used in make)
 
 #[derive(Clone, Copy, Debug)]
 pub struct Move {data: u16}

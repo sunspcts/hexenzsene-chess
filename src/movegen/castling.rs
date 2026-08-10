@@ -24,7 +24,7 @@ impl Board {
 
         let (perm_mask_ks, perm_mask_qs) = (1 << (side * 2), 2 << (side * 2)); // side * 2 = 0 for white, 2 for black.
 
-        if (perm_mask_ks & self.game_state.castling != 0) & (all_pieces & ks_mask == Bitboard::zero()) {
+        if (perm_mask_ks & self.game_state.castling != 0) & (all_pieces & ks_mask == Bitboard::zero()) { // ya like bitwise comparisons?
             moves.push(Move::new_from_raw((king_sq) | ((king_sq + 2) << 6) | (move_flags::KING_CASTLE << 12)))
         }
         if (perm_mask_qs & self.game_state.castling != 0) & (all_pieces & qs_mask == Bitboard::zero()) {

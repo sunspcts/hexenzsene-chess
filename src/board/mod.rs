@@ -138,10 +138,8 @@ impl Board {
         let mut key = 0;
         for sq in 0..64 {
             let piece = self[sq as u16];
-            if piece != Piece::None {
-                if let Some(side) = self.get_side_at(sq as u16) {
-                    key ^= ZOBRIST_RANDOMS[get_piece_zobrist_index(piece, side, sq)];
-                }
+            if piece != Piece::None && let Some(side) = self.get_side_at(sq as u16) {
+                key ^= ZOBRIST_RANDOMS[get_piece_zobrist_index(piece, side, sq)];
             }
         }
 
@@ -206,6 +204,6 @@ impl Board {
 
 #[inline(always)]
 pub fn get_piece_zobrist_index(piece: Piece, side: Side, sq: usize) -> usize {
-    ((piece as usize + side as usize * 6)) * 64 + sq
+    (piece as usize + side as usize * 6) * 64 + sq
 }
 

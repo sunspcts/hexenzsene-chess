@@ -70,6 +70,7 @@ impl Move {
     }
 
     // Helpers for unpacking data field
+    #[allow(clippy::wrong_self_convention)] // silly lint in this case
     pub fn from_sq(self) -> u16 {
         self.data & 0x3F
     }

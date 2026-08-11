@@ -20,6 +20,6 @@ impl MoveList {
         }
 
         self.swap(idx, best_idx); // Next call will start at idx + 1, so we want to exclude the element we just found.
-        return self[idx];
+        self[idx]
     }
 }

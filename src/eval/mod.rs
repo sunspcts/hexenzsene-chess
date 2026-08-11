@@ -104,14 +104,13 @@ fn pawn_eval(board: &Board, score: &mut i64, phase: i64, params: &EvalParams) {
         }
     }
 
-    for f in 0..8 {
-        let file_mask = FILE_MASKS[f];
-        let white_count = (white & file_mask).count_ones() as i64; 
+    for (f, file_mask) in FILE_MASKS.iter().enumerate() {
+        let white_count = (white & *file_mask).count_ones() as i64; 
         let group = if f < 4 { f } else { 7 - f };
         let count = white_count - 1;
          // We do this for every file, even if there aren't any doubled pawns, because it's quite cheap.
         *score += count * (params.doubled_pawn_mg[group] * phase + params.doubled_pawn_eg[group] * eg_phase) / MAX_PHASE;
-        let black_count = (black & file_mask).count_ones() as i64;
+        let black_count = (black & *file_mask).count_ones() as i64;
         let count = black_count - 1;
         *score -= count * (params.doubled_pawn_mg[group] * phase + params.doubled_pawn_eg[group] * eg_phase) / MAX_PHASE;
 

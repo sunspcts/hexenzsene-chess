@@ -30,14 +30,7 @@ impl std::fmt::Display for Move {
 impl Move {
     // Generates all possible moves, checks if the uci_string passed matches any of them. Returns None as a fallback.
     pub fn from_uci(board: &Board, uci_str: &str) -> Option<Move> {
-        let moves = board.generate_pseudolegal_moves_list();
-        for &mv in &moves {
-            if mv.to_string() == uci_str {
-                if board.make(mv).is_some() {
-                    return Some(mv);
-                }
-            }
-        }
-        None
+        let moves = &board.generate_pseudolegal_moves_list();
+        moves.into_iter().find(|&&mv| mv.to_string() == uci_str && board.make(mv).is_some()).copied()
     }
 }

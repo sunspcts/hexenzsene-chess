@@ -1,13 +1,7 @@
 //struct, access methods, and impls of operator traits.
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, Default, PartialEq)]
 pub struct Bitboard(u64);
-
-impl Default for Bitboard {
-    fn default() -> Self {
-        Bitboard(0)
-    }
-}
 
 impl Bitboard {
     pub const fn new(val: u64) -> Self {

@@ -35,14 +35,12 @@ pub fn engine() {
             Some("isready") => println!("readyok"),
             Some("setoption") => {
                 stop_search(&mut search_thread, &mut search_control);
-                if let Some((name, value)) = parse_setoption(line) {
-                    if name.eq_ignore_ascii_case("hash") {
-                        if let Ok(mb) = value.parse::<usize>() {
+                if let Some((name, value)) = parse_setoption(line)
+                    && name.eq_ignore_ascii_case("hash")
+                        && let Ok(mb) = value.parse::<usize>() {
                             let mb = mb.clamp(1, 1024);
                             *tt.lock().unwrap() = TT::new(mb);
                         }
-                    }
-                }
             }
             Some("position") => {
                 stop_search(&mut search_thread, &mut search_control);
@@ -96,7 +94,7 @@ pub fn engine() {
                         stopped: false,
                         age: search_age,
                         move_lists: [MoveList::default(); crate::search::MAX_PLY],
-                        tt: &mut *tt_guard,
+                        tt: &mut tt_guard,
                         killers: [[0; 2]; crate::search::MAX_PLY],
                         history: [[[0; 64]; 64]; 2],
                         pv_table: [[Move::new_from_raw(0); crate::search::MAX_PLY]; crate::search::MAX_PLY],
@@ -176,52 +174,38 @@ impl GoParameters {
         while let Some(part) = parts.next() {
             match part {
                 "depth" => {
-                    if let Some(val) = parts.next() {
-                        if let Ok(parsed) = val.parse::<i64>() {
-                            params.depth = Some(parsed);
-                        }
+                    if let Some(val) = parts.next() && let Ok(parsed) = val.parse::<i64>() {
+                        params.depth = Some(parsed);
                     }
                 }
                 "movetime" => {
-                    if let Some(val) = parts.next() {
-                        if let Ok(parsed) = val.parse::<u64>() {
-                            params.movetime = Some(parsed);
-                        }
+                    if let Some(val) = parts.next() && let Ok(parsed) = val.parse::<u64>() {
+                        params.movetime = Some(parsed);
                     }
                 }
                 "nodes" => {
-                    if let Some(val) = parts.next() {
-                        if let Ok(parsed) = val.parse::<u64>() {
-                            params.nodes = Some(parsed);
-                        }
+                    if let Some(val) = parts.next() && let Ok(parsed) = val.parse::<u64>() {
+                        params.nodes = Some(parsed);
                     }
                 }
                 "wtime" => {
-                    if let Some(val) = parts.next() {
-                        if let Ok(parsed) = val.parse::<u64>() {
-                            params.wtime = Some(parsed);
-                        }
+                    if let Some(val) = parts.next() && let Ok(parsed) = val.parse::<u64>() {
+                        params.wtime = Some(parsed);
                     }
                 }
                 "btime" => {
-                    if let Some(val) = parts.next() {
-                        if let Ok(parsed) = val.parse::<u64>() {
-                            params.btime = Some(parsed);
-                        }
+                    if let Some(val) = parts.next() && let Ok(parsed) = val.parse::<u64>() {
+                        params.btime = Some(parsed);
                     }
                 }
                 "winc" => {
-                    if let Some(val) = parts.next() {
-                        if let Ok(parsed) = val.parse::<u64>() {
-                            params.winc = Some(parsed);
-                        }
+                    if let Some(val) = parts.next() && let Ok(parsed) = val.parse::<u64>() {
+                        params.winc = Some(parsed);
                     }
                 }
                 "binc" => {
-                    if let Some(val) = parts.next() {
-                        if let Ok(parsed) = val.parse::<u64>() {
-                            params.binc = Some(parsed);
-                        }
+                    if let Some(val) = parts.next() && let Ok(parsed) = val.parse::<u64>() {
+                        params.binc = Some(parsed);
                     }
                 }
                 "infinite" => params.infinite = true,
@@ -284,12 +268,11 @@ fn parse_uci_position(curr_board: Board, line: &str) -> (Board, Vec<u64>) {
             continue
         }
 
-        if let Some(mv) = Move::from_uci(&board, m) {
-            if let Some(next_board) = board.make(mv) {
+        if let Some(mv) = Move::from_uci(&board, m)
+            && let Some(next_board) = board.make(mv) {
                 board = next_board;
                 hash_history.push(board.game_state.curr_zobrist_key);
             }
-        }
     }
     (board, hash_history)
 }

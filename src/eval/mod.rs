@@ -8,6 +8,9 @@ use mobility::*;
 
 use crate::board::Board;
 
+const PIECE_PHASE: [i64; 6] = [0, 1, 1, 2, 4, 0];
+const MAX_PHASE: i64 = 24;
+
 //useful to allow tuning routines to fuck with the params.
 #[derive(Clone, Copy)]
 pub struct EvalParams {
@@ -63,7 +66,7 @@ pub fn eval_with_params(board: &Board, params: &EvalParams) -> i64 {
 
     let mut score = 0;
 
-    pawn_eval(board, &mut score, phase, params);
+    pawn_eval(board, &mut score, phase, params); // These are the only pieces with unique eval at the moment.
     knight_eval(board, &mut score, phase, params);
 
     for p in 2..6 {
@@ -77,6 +80,7 @@ pub fn eval_with_params(board: &Board, params: &EvalParams) -> i64 {
 fn pawn_eval(board: &Board, score: &mut i64, phase: i64, params: &EvalParams) {
     let white = board.piece_bb[0][0]; let black = board.piece_bb[1][0];
     let eg_phase = MAX_PHASE - phase;
+
     *score += calc_tapered_score_with_params(0, phase, white, 56, &params.mg_piece_values, &params.eg_piece_values, &params.mg_psts, &params.eg_psts);
     *score -= calc_tapered_score_with_params(0, phase, black, 0, &params.mg_piece_values, &params.eg_piece_values, &params.mg_psts, &params.eg_psts);
 
@@ -89,6 +93,7 @@ fn pawn_eval(board: &Board, score: &mut i64, phase: i64, params: &EvalParams) {
             *score += (params.passed_pawn_mg[rank] * phase + params.passed_pawn_eg[rank] * eg_phase) / MAX_PHASE;
         }
     }
+
     for sq in black {
         if is_isolated(sq, black) {
             *score -= (params.isolated_pawn_mg * phase + params.isolated_pawn_eg * eg_phase) / MAX_PHASE;
@@ -101,20 +106,15 @@ fn pawn_eval(board: &Board, score: &mut i64, phase: i64, params: &EvalParams) {
 
     for f in 0..8 {
         let file_mask = FILE_MASKS[f];
-        let white_count = (white & file_mask).count_ones() as i64;
-
+        let white_count = (white & file_mask).count_ones() as i64; 
         let group = if f < 4 { f } else { 7 - f };
-
-        if white_count > 1 {
-            let count = white_count - 1;
-            *score += count * (params.doubled_pawn_mg[group] * phase + params.doubled_pawn_eg[group] * eg_phase) / MAX_PHASE;
-        }
-
+        let count = white_count - 1;
+         // We do this for every file, even if there aren't any doubled pawns, because it's quite cheap.
+        *score += count * (params.doubled_pawn_mg[group] * phase + params.doubled_pawn_eg[group] * eg_phase) / MAX_PHASE;
         let black_count = (black & file_mask).count_ones() as i64;
-        if black_count > 1 {
-            let count = black_count - 1;
-            *score -= count * (params.doubled_pawn_mg[group] * phase + params.doubled_pawn_eg[group] * eg_phase) / MAX_PHASE;
-        }
+        let count = black_count - 1;
+        *score -= count * (params.doubled_pawn_mg[group] * phase + params.doubled_pawn_eg[group] * eg_phase) / MAX_PHASE;
+
     }
 }
 
@@ -135,4 +135,4 @@ fn standard_eval(piece: usize, board: &Board, score: &mut i64, phase: i64, param
 
     *score += calc_tapered_score_with_params(piece, phase, white, 56, &params.mg_piece_values, &params.eg_piece_values, &params.mg_psts, &params.eg_psts);
     *score -= calc_tapered_score_with_params(piece, phase, black, 0, &params.mg_piece_values, &params.eg_piece_values, &params.mg_psts, &params.eg_psts);
-}
+}

@@ -20,7 +20,6 @@ pub(super) fn quiescense(board: &Board, mut context: SearchContext, env: &mut Se
         context.alpha = best_value;
     }
 
-    let ply = (context.ply as usize).min(MAX_PLY - 1);
     board.generate_pseudolegal_caps_promos(&mut env.move_lists[ply]);
     env.move_lists[ply].score_qsearch_moves(board);
     let moves_count = env.move_lists[ply].len();
@@ -38,8 +37,11 @@ pub(super) fn quiescense(board: &Board, mut context: SearchContext, env: &mut Se
                 best_value = score;
             }
 
-            if context.update_alpha(score) {
+            if score >= context.beta {
                 return score;
+            }
+            if score > context.alpha {
+                context.alpha = score;
             }
         }
     }

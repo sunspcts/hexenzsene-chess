@@ -1,4 +1,5 @@
 use crate::bitboard::Bitboard;
+use super::*;
 
 //PeSTO tables.
 pub(super) const MG_PAWN_PST: [i64; 64] = [
@@ -135,9 +136,6 @@ pub(super) const EG_KING_PST: [i64; 64] = [
 
 pub(super) const MG_PSTS: [[i64; 64]; 6] = [MG_PAWN_PST, MG_KNIGHT_PST, MG_BISHOP_PST, MG_ROOK_PST, MG_QUEEN_PST, MG_KING_PST];
 pub(super) const EG_PSTS: [[i64; 64]; 6] = [EG_PAWN_PST, EG_KNIGHT_PST, EG_BISHOP_PST, EG_ROOK_PST, EG_QUEEN_PST, EG_KING_PST];
-
-pub(super) const PIECE_PHASE: [i64; 6] = [0, 1, 1, 2, 4, 0];
-pub(super) const MAX_PHASE: i64 = 24;
 
 pub(super) const MG_PIECE_VALUES: [i64; 6] = [82, 337, 365, 477, 1025,  0];
 pub(super) const EG_PIECE_VALUES: [i64; 6] = [94, 281, 297, 512,  936,  0];

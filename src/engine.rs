@@ -2,8 +2,8 @@ use std::{io::{self, BufRead}, sync::{Arc, Mutex, atomic::Ordering}, thread, tim
 
 use crate::{board::{Board, Side}, moves::{Move, MoveList}, search::{SearchControl, SearchEnv, TT, search}};
 
-const ENGINE_NAME: &str = "Hexenzsene"; // there's another engine called ferrite unfortunately. at least i can make it a cool reference to Peak
-const ENGINE_AUTHOR: &str = "sunspcts";
+const ENGINE_NAME: &str = "Hexenzsene v0.1.1";
+const ENGINE_AUTHOR: &str = "Averie Harkins";
 const DEFAULT_DEPTH: i64 = 8;
 const DEFAULT_HASH_MB: usize = 16;
 const STARTPOS_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";

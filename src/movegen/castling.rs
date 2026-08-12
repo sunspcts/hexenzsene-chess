@@ -1,37 +1,35 @@
 use super::*;
 
-use crate::{moves::MoveList, piece::Piece, bitboard::Bitboard};
+use crate::{moves::MoveList, bitboard::Bitboard};
+
+// CONVENTION
+// (indexed from lsb) 
+// bit 0 - White Kingside Castling
+// bit 1 - White Queenside Castling
+// bit 2 - Black Kingside Castling
+// bit 3 - Black Queenside Castling
 
 impl Board {
     pub fn generate_castling_moves(
         &self,
         moves: &mut MoveList,
     ) {
-        let side = self.game_state.active_side;
+        let side = self.game_state.active_side as usize;
         let all_pieces = self.side_bb[0] | self.side_bb[1];
 
-        if side == Side::White {
-            if self.game_state.castling & 1 != 0 {
-                if (all_pieces & Bitboard::new(0x60)) == Bitboard::zero() {
-                    moves.push(Move::new(self, 4, 6, move_flags::KING_CASTLE, Piece::King)); // E1 to G1
-                }
-            }
-            if self.game_state.castling & 2 != 0 {
-                if (all_pieces & Bitboard::new(0x0E)) == Bitboard::zero() {
-                    moves.push(Move::new(self, 4, 2, move_flags::QUEEN_CASTLE, Piece::King)); // E1 to C1
-                }
-            }
-        } else {
-            if self.game_state.castling & 4 != 0 {
-                if (all_pieces & Bitboard::new(0x6000000000000000)) == Bitboard::zero() {
-                    moves.push(Move::new(self, 60, 62, move_flags::KING_CASTLE, Piece::King)); // E8 to G8
-                }
-            }
-            if self.game_state.castling & 8 != 0 {
-                if (all_pieces & Bitboard::new(0x0E00000000000000)) == Bitboard::zero() {
-                    moves.push(Move::new(self, 60, 58, move_flags::QUEEN_CASTLE, Piece::King)); // E8 to C8
-                }
-            }
+        let shift = side * 56;
+        let ks_mask = Bitboard::new(0b01100000 << shift); // F1, G1 for white, F8, G8 for black.
+        let qs_mask = Bitboard::new(0b00001110 << shift); // B1, C1, D1 for white, B8, C8, D8 for black.
+        let king_sq = (4 + shift) as u16;
+
+        let (perm_mask_ks, perm_mask_qs) = (1 << (side * 2), 2 << (side * 2)); // side * 2 = 0 for white, 2 for black.
+
+        if (perm_mask_ks & self.game_state.castling != 0) & (all_pieces & ks_mask == Bitboard::zero()) { // ya like bitwise comparisons?
+            moves.push(Move::new_from_raw((king_sq) | ((king_sq + 2) << 6) | (move_flags::KING_CASTLE << 12)))
+        }
+        if (perm_mask_qs & self.game_state.castling != 0) & (all_pieces & qs_mask == Bitboard::zero()) {
+            moves.push(Move::new_from_raw((king_sq) | ((king_sq - 2) << 6) | (move_flags::QUEEN_CASTLE << 12)))
         }
     }
 }
+

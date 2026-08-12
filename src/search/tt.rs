@@ -21,7 +21,7 @@ pub struct TTEntry {
     pub age: u8,
 }
 
-#[inline(always)]
+#[inline]
 pub fn score_to_tt(score: i64, ply: i64) -> i16 {
     if score > MATE_EVAL - 1000 {
         (score + ply) as i16
@@ -32,7 +32,7 @@ pub fn score_to_tt(score: i64, ply: i64) -> i16 {
     }
 }
 
-#[inline(always)]
+#[inline]
 fn score_from_tt(score: i16, ply: i64) -> i64 {
     let s = score as i64;
     if s > MATE_EVAL - 1000 {
@@ -49,7 +49,7 @@ impl TTEntry {
         if self.move_data == 0 {
             None
         } else {
-            Some(Move::new_without_score(self.move_data))
+            Some(Move::new_from_raw(self.move_data))
         }
     }
 
@@ -70,13 +70,17 @@ impl TTEntry {
 
 pub struct TT {
     entries: Vec<TTEntry>,
+    mask: usize,
 }
 
 impl TT {
     pub fn new(size_mb: usize) -> Self {
-        let num_entries = (size_mb * 2_usize.pow(20)) / std::mem::size_of::<TTEntry>();
+        let bytes = size_mb * 1024 * 1024;
+        let target_entries = bytes / std::mem::size_of::<TTEntry>();
+        let num_entries = 1usize << (usize::BITS - 1 - target_entries.leading_zeros());
         TT {
             entries: vec![TTEntry::default(); num_entries],
+            mask: num_entries - 1,
         }
     }
 
@@ -84,8 +88,9 @@ impl TT {
         self.entries.fill(TTEntry::default());
     }
 
+    #[inline(always)]
     pub fn get(&self, zobrist_key: u64) -> Option<TTEntry> {
-        let index = (zobrist_key as usize) % self.entries.len();
+        let index = (zobrist_key as usize) & self.mask;
         let entry = self.entries[index];
         if entry.node_type != NodeType::None && entry.zobrist_key == zobrist_key {
             Some(entry)
@@ -95,7 +100,7 @@ impl TT {
     }
 
     pub fn store(&mut self, entry: TTEntry) {
-        let index = (entry.zobrist_key as usize) % self.entries.len();
+        let index = (entry.zobrist_key as usize) & self.mask;
         let existing = self.entries[index];
         let mut entry = entry;
         if existing.node_type != NodeType::None {

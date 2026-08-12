@@ -6,9 +6,13 @@ use super::Board;
 use super::state::GameState;
 
 const PIECE_CHARS: &str = "kqrbnpKQRBNP";
-// BOARD INIT
 
+// BOARD INIT
 impl Board {
+    // This function doesn't like being given a malformed fen. I'll add proper error handling before release, I swear.
+    // HOWEVER. Since the engine is mostly to be used with GUIs, it doesn't really have many user friendly ways to load a FEN.
+    // Any UCI-conformant GUI will be fine. 
+
     pub fn new_from_fen(fen: &str) -> Self {
         let fen_parts: Vec<&str> = fen.split_ascii_whitespace().collect();
         let (piece_bb, side_bb, mailbox) = init_bb_mb_fen(fen_parts[0]);
@@ -44,7 +48,7 @@ pub fn init_bb_mb_fen(fen_part_1: &str) -> ([[Bitboard; 6]; 2], [Bitboard; 2], [
     let mut rank = 7; let mut file = 0;
     for char in fen_part_1.chars() {
         let sq = (rank * 8) + file;
-
+        //This could've been a lookup table. But this is more readable, and this is a very rarely used method, so it's fine.
         match char {
             'p' => {piece_bb[1][0] |= Bitboard::one() << sq; mailbox[sq] = Piece::Pawn},
             'P' => {piece_bb[0][0] |= Bitboard::one() << sq; mailbox[sq] = Piece::Pawn},
@@ -95,10 +99,10 @@ pub fn init_castling_rights(fen_part_3: &str) -> u8 {
     let mut castling_rights = 0;
     for c in fen_part_3.chars() {
         castling_rights += match c {
-            'K' => 1,
-            'Q' => 2,
-            'k' => 4,
-            'q' => 8,
+            'K' => 0b0001,
+            'Q' => 0b0010,
+            'k' => 0b0100,
+            'q' => 0b1000,
             _ => 0,
         }
     }
@@ -108,7 +112,7 @@ pub fn init_castling_rights(fen_part_3: &str) -> u8 {
 pub fn init_ep_square(fen_part_4: &str) -> Option<u8> {
     if fen_part_4 == "-" {
         None
-    } else {
+    } else { // if the square is invalid, or if it only includes file, we'll get corrupted data. conforms to uci specification though, so it's fine.
         let mut chars = fen_part_4.chars();
         let file_char = chars.next().unwrap();
         let file = file_char as u8 - b'a';

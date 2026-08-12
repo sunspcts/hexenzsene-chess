@@ -1,24 +1,27 @@
 # Hexenzsene
 
 A Fully UCI compatible Rust based HCE chess engine written from scratch.
+
 ## Features
 
 ### Board Representation
 
-- Bitboard board representation.
+- Bitboard board representation
 
 ### Search
 
 - Negamax with iterative deepening
 - Alpha-Beta pruning
-- Quiescense Search
+- Quiescence Search (optimized captures-only movegen)
 - Check extensions
 - Transposition table cutoffs
 
-### Heuristics
+### Heuristics & Move Ordering
 
 - Transposition table move ordering
-- MVV-LVA heuristic
+- MVV-LVA (Most Valuable Victim - Least Valuable Aggressor) heuristic
+- Killer move heuristic
+- History heuristic with gravity
 
 ### Evaluation
 

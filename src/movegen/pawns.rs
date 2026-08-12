@@ -72,6 +72,60 @@ impl Board {
         pawn_move_helper(self, ep_capture_left, offset_cap_left, move_flags::EP_CAPTURE, false, moves);
         pawn_move_helper(self, ep_capture_right, offset_cap_right, move_flags::EP_CAPTURE, false, moves);
     }
+
+    pub fn generate_pawn_caps_promos(
+        &self,
+        moves: &mut MoveList,
+    ) {
+        let side = self.game_state.active_side;
+        let pawns = self.piece_bb[side as usize][Piece::Pawn as usize];
+        let enemy_pieces = self.side_bb[(side as usize) ^ 1]; //this is disgusting but it's kinda a funny way!
+        let empty = !(self.side_bb[side as usize] | enemy_pieces);
+
+        let ep_square = self.game_state.en_passant_square;
+        let ep_square_bb = Bitboard::new(ep_square.map_or(0, |x| 1u64 << x));
+
+        let single_pushes = if side == Side::White { (pawns << 8) & empty } else { (pawns >> 8) & empty };
+        let promo_pushes = single_pushes & PROMOTION_RANKS_BB;
+
+        let attackables = enemy_pieces | ep_square_bb;
+        let captures_left: Bitboard;
+        let captures_right: Bitboard;
+
+        if side == Side::White {
+            captures_left = ((pawns & !A_FILE_BB) << 7) & attackables;
+            captures_right = ((pawns & !H_FILE_BB) << 9) & attackables;
+        } else {
+            captures_left = ((pawns & !A_FILE_BB) >> 9) & attackables;
+            captures_right = ((pawns & !H_FILE_BB) >> 7) & attackables;
+        }
+
+        let promotion_bb = PROMOTION_RANKS_BB;
+
+        let promo_caps_left = captures_left & promotion_bb;
+        let ep_capture_left = captures_left & ep_square_bb;
+        let captures_left = captures_left & !promotion_bb & !ep_square_bb;
+
+        let promo_caps_right = captures_right & promotion_bb;
+        let ep_capture_right = captures_right & ep_square_bb;
+        let captures_right = captures_right & !promotion_bb & !ep_square_bb;
+
+
+        let (offset_push, offset_cap_left, offset_cap_right) = if side == Side::White {
+            (8, 7, 9)
+        } else {
+            (-8, -9, -7)
+        };
+
+        //Lots of cases!
+        pawn_move_helper(self, captures_left, offset_cap_left, move_flags::CAPTURE, false, moves);
+        pawn_move_helper(self, captures_right, offset_cap_right, move_flags::CAPTURE, false, moves);
+        pawn_move_helper(self, promo_pushes, offset_push, 0, true, moves);
+        pawn_move_helper(self, promo_caps_left, offset_cap_left, move_flags::CAPTURE, true, moves);
+        pawn_move_helper(self, promo_caps_right, offset_cap_right, move_flags::CAPTURE, true, moves);
+        pawn_move_helper(self, ep_capture_left, offset_cap_left, move_flags::EP_CAPTURE, false, moves);
+        pawn_move_helper(self, ep_capture_right, offset_cap_right, move_flags::EP_CAPTURE, false, moves);
+    }
 }
 
 #[inline]

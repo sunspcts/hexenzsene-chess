@@ -1,3 +1,9 @@
 /target
 profile.json.gz
 .DS_Store
+# fastchess just loves to dump its config wherever you run it from, huh.
+config.json
+quiet-labeled.epd
+.vscode/launch.json
+TODO.md
+book.epd

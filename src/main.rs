@@ -1,4 +1,3 @@
-mod attacks;
 mod bitboard;
 mod board;
 mod engine;
@@ -10,5 +9,6 @@ mod piece;
 mod search;
 
 fn main() {
+    println!("Ferrite Chess v0.2.0");
     engine::engine();
 }

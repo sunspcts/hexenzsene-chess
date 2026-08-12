@@ -61,7 +61,8 @@ const fn init_lmr_table() -> [[i64; 64]; 64] {
             let ln_m = const_ln(m);
             // Ethereal's LMR formula.
             let r = 0.7844 + (ln_d * ln_m) / 2.4696;
-            table[d][m] = r as i64;
+            let adjusted_r = if d < 3 { 0 } else { r as i64 }; // if depth < 3, don't reduce at all.
+            table[d][m] = adjusted_r;
             m += 1;
         }
 

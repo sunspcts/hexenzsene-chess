@@ -129,13 +129,28 @@ impl SearchContext {
         &self,
         board: &Board,
         depth: i64,
-        is_first_move: bool,
+        move_count: usize,
         env: &mut SearchEnv,
     ) -> i64 {
+        let is_first_move = move_count == 0;
         if is_first_move {
             -negamax(board, self.next_context(depth, self.is_pv), env)
         } else {
-            let mut score = -negamax(board, self.next_context_null_window(depth), env);
+            let lmr_allowed = self.depth >= 3 && move_count >= 3;
+            let mut score = if lmr_allowed {
+                let depth_clamp = (self.depth as usize).min(63);
+                let move_clamp = move_count.min(63);
+                let reduction = LM_REDUCTIONS_TABLE[depth_clamp][move_clamp];
+                let lmr_score = -negamax(board, self.next_context_null_window(depth - reduction), env);
+                if lmr_score > self.alpha {
+                    -negamax(board, self.next_context_null_window(depth), env)
+                } else {
+                    lmr_score
+                }
+            } else {
+                -negamax(board, self.next_context_null_window(depth), env)
+            };
+
             if score > self.alpha && score < self.beta {
                 score = -negamax(board, self.next_context(depth, self.is_pv), env);
             }

@@ -47,7 +47,7 @@ fn search_fixed_depth(board: &Board, depth: i64, env: &mut SearchEnv) -> (i64, O
 
     let mut best_move = None;
     // PV Search treats the first move differently, as it's the only move that's searched with a full window by default.
-    let mut is_first_move = true; 
+    let mut move_count = 0; 
 
     let mut context = SearchContext {
         alpha: -1_000_000, 
@@ -64,9 +64,11 @@ fn search_fixed_depth(board: &Board, depth: i64, env: &mut SearchEnv) -> (i64, O
         if let Some(next_board) = board.make(candidate_move) { 
             env.hash_history.push(board.game_state.curr_zobrist_key);
             // Calls negamax, taking into account the first move.
-            let score = context.search_move(&next_board, depth - 1, is_first_move, env); 
+            let score = context.search_move(&next_board, depth - 1, move_count, env); 
             env.hash_history.pop();
 
+            move_count += 1;
+            
             if env.stopped {
                 break;
             }
@@ -77,8 +79,6 @@ fn search_fixed_depth(board: &Board, depth: i64, env: &mut SearchEnv) -> (i64, O
 
                 env.update_pv(ply, candidate_move);
             }
-
-            is_first_move = false;
         }
     }
 

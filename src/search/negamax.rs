@@ -43,18 +43,17 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
     env.move_lists[ply].score_moves(board, pv_move, tt_move, &env.killers[ply], &env.history); // Ordering score!
     let moves_count = env.move_lists[ply].len();
 
-    let mut is_first_move = true;
     let mut best_move = None;
     let mut max_score = i64::MIN;
     let old_alpha = context.alpha;
 
     let mut quiet_moves_tried: [Move; 64] = [Move::new_from_raw(0); 64];
     let mut quiet_count = 0;
+    let mut move_count = 0;
 
     for i in 0..moves_count {
         let candidate_move = env.move_lists[ply].pick_best(i);
         if let Some(next_board) = board.make(candidate_move) {
-            is_first_move = false;
             let is_quiet = !candidate_move.is_capture();
 
             if is_quiet && quiet_count < 64 { // We're gonna give this a malus if another quiet move causes a beta cutoff.
@@ -63,8 +62,10 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
             }
 
             env.hash_history.push(board.game_state.curr_zobrist_key);
-            let score = context.search_move(&next_board, depth - 1, is_first_move, env);
+            let score = context.search_move(&next_board, depth - 1, move_count, env);
             env.hash_history.pop();
+
+            move_count += 1;
 
             if env.stopped {
                 return 0;
@@ -101,7 +102,7 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
         }
     }
 
-    if is_first_move { // We never found a legal move.
+    if move_count == 0 { // We never found a legal move.
         if in_check {
             return -MATE_EVAL + context.ply;
         } else {

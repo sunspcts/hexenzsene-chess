@@ -202,7 +202,7 @@ impl Board {
 
 // ZOBRIST HASHING
 
-#[inline(always)]
+#[inline]
 pub fn get_piece_zobrist_index(piece: Piece, side: Side, sq: usize) -> usize {
     (piece as usize + side as usize * 6) * 64 + sq
 }

@@ -21,7 +21,7 @@ pub struct TTEntry {
     pub age: u8,
 }
 
-#[inline(always)]
+#[inline]
 pub fn score_to_tt(score: i64, ply: i64) -> i16 {
     if score > MATE_EVAL - 1000 {
         (score + ply) as i16
@@ -32,7 +32,7 @@ pub fn score_to_tt(score: i64, ply: i64) -> i16 {
     }
 }
 
-#[inline(always)]
+#[inline]
 fn score_from_tt(score: i16, ply: i64) -> i64 {
     let s = score as i64;
     if s > MATE_EVAL - 1000 {
@@ -99,7 +99,6 @@ impl TT {
         }
     }
 
-    #[inline(always)]
     pub fn store(&mut self, entry: TTEntry) {
         let index = (entry.zobrist_key as usize) & self.mask;
         let existing = self.entries[index];

@@ -1,7 +1,27 @@
 //struct, access methods, and impls of operator traits.
 
 #[derive(Copy, Clone, Default, PartialEq)]
-pub struct Bitboard(u64);
+pub struct Bitboard(u64); 
+
+/* Bitboard is simply a wrapper around u64, which implements a subset of u64's bitwise operations
+but none of its arithmetic operations, mostly for idiot-proofing.
+
+More importantly, it does not directly expose its inner data to the rest of the engine.
+
+Bitboard's field can be accessed in four ways:
+- Forward bitscan / Trailing zeros
+- Reverse bitscan / Leading zeros
+- Popcount
+- Its Iterator implementation, which returns the indices of the set bits.
+
+This is mostly, again, for idiot proofing, as otherwise it would be easy to write code such as
+
+let bb_u64 = bitboard.0
+// ILLEGAL BITBOARD MANIPULATION
+let bitboard = Bitboard(bb_u64)
+
+risking bitboard state corruption.
+*/
 
 impl Bitboard {
     pub const fn new(val: u64) -> Self {
@@ -18,6 +38,8 @@ impl Bitboard {
 }
 
 impl std::fmt::Debug for Bitboard {
+    // "pretty" prints the bitboard. 
+
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(fmt, "Bitboard:")?;
         for rank in (0..8).rev() {
@@ -32,13 +54,7 @@ impl std::fmt::Debug for Bitboard {
     }
 }
 
-// is this going to actually be necessary?
-impl From<Bitboard> for u64 {
-    fn from(bb: Bitboard) -> Self {
-        bb.0
-    }
-}
-
+// All of these are wrappers around stdlib implementations for u64. 
 impl std::ops::Shl<usize> for Bitboard {
     type Output = Self;
 
@@ -120,7 +136,10 @@ impl Iterator for Bitboard {
             None
         } else {
             let sq = self.0.trailing_zeros() as u16;
-            self.0 &= self.0.wrapping_sub(1); // Pop the bit
+            // really neat trick to pop the LSB, I think it's Kernighan's?
+            // if n = 0b10110000, then n - 1 = 0b10101111. Every bit after the least significant bit is one, while the LSB is now 0.
+            // n & (n - 1) = 0b10100000.
+            self.0 &= self.0 - 1; 
             Some(sq)
         }
     }

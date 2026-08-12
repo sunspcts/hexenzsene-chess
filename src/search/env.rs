@@ -49,7 +49,7 @@ impl<'a> SearchEnv<'a> {
             self.stopped = true;
             return true;
         }
-        if (self.nodes_visited & NODE_CHECK_INTERVAL_MASK == 0) && self.search_control.is_stopped() { // self.search_control.is_stopped() is never checked unless (self.nodes_visited & NODE_CHECK_INTERVAL_MASK == 0)
+        if (self.nodes_visited & NODE_CHECK_INTERVAL_MASK == 0) && self.search_control.is_stopped() {
             self.stopped = true;
             return true;
         }
@@ -80,7 +80,7 @@ impl<'a> SearchEnv<'a> {
 }
 
 #[derive(Clone, Copy)]
-pub(super) struct SearchContext {
+pub struct SearchContext {
     pub alpha: i64,
     pub beta: i64,
     pub ply: i64,

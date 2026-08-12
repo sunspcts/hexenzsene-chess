@@ -2,7 +2,7 @@ use std::{io::{self, BufRead}, sync::{Arc, Mutex, atomic::Ordering}, thread, tim
 
 use crate::{board::{Board, Side}, moves::{Move, MoveList}, search::{SearchControl, SearchEnv, TT, search}};
 
-const ENGINE_NAME: &str = "Hexenzsene v0.1.1";
+const ENGINE_NAME: &str = "Hexenzsene v0.2.0";
 const ENGINE_AUTHOR: &str = "Averie Harkins";
 const DEFAULT_DEPTH: i64 = 8;
 const DEFAULT_HASH_MB: usize = 16;
@@ -17,6 +17,8 @@ pub fn engine() {
     let mut search_thread: Option<thread::JoinHandle<()>> = None;
     let tt = Arc::new(Mutex::new(TT::new(DEFAULT_HASH_MB)));
     let mut current_age: u8 = 0;
+
+    println!("Awaiting UCI Command...");
 
     for line in stdin.lock().lines() {
         let line = line.unwrap_or_default();

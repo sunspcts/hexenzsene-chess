@@ -49,22 +49,36 @@ fn search_fixed_depth(board: &Board, depth: i64, env: &mut SearchEnv) -> (i64, O
     // PV Search treats the first move differently, as it's the only move that's searched with a full window by default.
     let mut move_count = 0; 
 
+    let in_check = board.is_in_check();
+    let root_depth = depth + in_check as i64;
+
     let mut context = SearchContext {
         alpha: -1_000_000, 
         beta: 1_000_000,
         ply: 0,
-        depth,
+        depth: root_depth,
         is_pv: true, // First move is always the PV-Move.
         nmp_allowed: true,
+        lmr_allowed: root_depth >= 3 && !in_check,
     };
 
     for i in 0..moves_count {
         let candidate_move = env.move_lists[ply].pick_best(i);
         // board.make() returns None if the move is illegal, so this is also our legal move filter.
         if let Some(next_board) = board.make(candidate_move) { 
+            let is_quiet = !candidate_move.is_capture();
+            let is_killer = is_quiet && (candidate_move.data() == env.killers[ply][0] || candidate_move.data() == env.killers[ply][1]);
+
             env.hash_history.push(board.game_state.curr_zobrist_key);
             // Calls negamax, taking into account the first move.
-            let score = context.search_move(&next_board, depth - 1, move_count, env); 
+            let score = context.search_move(
+                &next_board,
+                root_depth - 1,
+                move_count,
+                is_quiet,
+                is_killer,
+                env,
+            ); 
             env.hash_history.pop();
 
             move_count += 1;

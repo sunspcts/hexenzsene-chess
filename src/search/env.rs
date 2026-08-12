@@ -88,9 +88,11 @@ pub struct SearchContext {
     pub is_pv: bool,
     #[allow(dead_code)]
     pub nmp_allowed: bool, // unused
+    pub lmr_allowed: bool,
 }
 
 impl SearchContext {
+    #[inline(always)]
     pub fn next_context(&self, depth: i64, is_pv: bool) -> Self {
         SearchContext { 
             alpha: -self.beta,
@@ -98,7 +100,8 @@ impl SearchContext {
             ply: self.ply + 1,
             depth,
             is_pv,
-            nmp_allowed: true
+            nmp_allowed: true,
+            lmr_allowed: self.lmr_allowed,
         }
     }
 
@@ -113,6 +116,7 @@ impl SearchContext {
         }
     }
 
+    #[inline(always)]
     pub fn next_context_null_window(&self, depth: i64) -> Self {
         SearchContext {
             alpha: -self.alpha - 1,
@@ -120,7 +124,8 @@ impl SearchContext {
             ply: self.ply + 1,
             depth,
             is_pv: false,
-            nmp_allowed: true
+            nmp_allowed: true,
+            lmr_allowed: self.lmr_allowed,
         }
     }
 
@@ -130,19 +135,25 @@ impl SearchContext {
         board: &Board,
         depth: i64,
         move_count: usize,
+        is_quiet: bool,
+        is_killer: bool,
         env: &mut SearchEnv,
     ) -> i64 {
         let is_first_move = move_count == 0;
         if is_first_move {
             -negamax(board, self.next_context(depth, self.is_pv), env)
         } else {
-            let lmr_allowed = self.depth >= 3 && move_count >= 3;
-            let mut score = if lmr_allowed {
+            let can_reduce = self.lmr_allowed && is_quiet && !is_killer && move_count >= 3;
+
+            let mut score = if can_reduce {
                 let depth_clamp = (self.depth as usize).min(63);
                 let move_clamp = move_count.min(63);
-                let reduction = LM_REDUCTIONS_TABLE[depth_clamp][move_clamp];
-                let lmr_score = -negamax(board, self.next_context_null_window(depth - reduction), env);
-                if lmr_score > self.alpha {
+
+                // We've already done the bounds check.
+                let reduction = unsafe {LM_REDUCTIONS_TABLE.get_unchecked(depth_clamp).get_unchecked(move_clamp)};
+                let lmr_score = -negamax(board, self.next_context_null_window(depth - reduction), env); // Search at reduced depth with a null window.
+
+                if lmr_score > self.alpha { // We failed high! Research at full depth.
                     -negamax(board, self.next_context_null_window(depth), env)
                 } else {
                     lmr_score
@@ -151,7 +162,7 @@ impl SearchContext {
                 -negamax(board, self.next_context_null_window(depth), env)
             };
 
-            if score > self.alpha && score < self.beta {
+            if self.is_pv && score > self.alpha && score < self.beta { // Failed high even at full depth. Let's run with a full window to get an accurate score.
                 score = -negamax(board, self.next_context(depth, self.is_pv), env);
             }
             score

@@ -17,6 +17,7 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
     // Check extensions.
     let in_check = board.is_in_check(); 
     let depth = context.depth + in_check as i64;
+    context.lmr_allowed = depth >= 3 && !in_check;
 
     // We've reached the depth limit of this iteration. 
     if depth <= 0 {
@@ -55,6 +56,7 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
         let candidate_move = env.move_lists[ply].pick_best(i);
         if let Some(next_board) = board.make(candidate_move) {
             let is_quiet = !candidate_move.is_capture();
+            let is_killer = is_quiet && (candidate_move.data() == env.killers[ply][0] || candidate_move.data() == env.killers[ply][1]);
 
             if is_quiet && quiet_count < 64 { // We're gonna give this a malus if another quiet move causes a beta cutoff.
                 quiet_moves_tried[quiet_count] = candidate_move;
@@ -62,7 +64,14 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
             }
 
             env.hash_history.push(board.game_state.curr_zobrist_key);
-            let score = context.search_move(&next_board, depth - 1, move_count, env);
+            let score = context.search_move(
+                &next_board,
+                depth - 1,
+                move_count,
+                is_quiet,
+                is_killer,
+                env,
+            );
             env.hash_history.pop();
 
             move_count += 1;

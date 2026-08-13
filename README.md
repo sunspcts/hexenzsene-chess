@@ -2,7 +2,7 @@
 
 A Fully UCI compatible Rust based HCE chess engine written from scratch.
 
-## Features
+## Features (outdated)
 
 ### Board Representation
 

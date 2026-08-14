@@ -91,6 +91,7 @@ pub fn engine() {
                     let mut env = SearchEnv {
                         nodes_visited: 0,
                         node_limit,
+                        silent: false,
                         hash_history: new_history,
                         search_control: new_control,
                         stopped: false,

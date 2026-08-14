@@ -129,13 +129,16 @@ pub fn search(board: &Board, max_depth: i64, env: &mut SearchEnv) -> (i64, Optio
             global_best_move = Some(mv);
             global_best_score = score;
 
-            let score_str = format_score(score);
-            let pv_str = env.format_pv();
+            if !env.silent {
+                let score_str = format_score(score);
+                let pv_str = env.format_pv();
 
-            println!(
-                "info depth {} score {} nodes {} pv {}",
-                d, score_str, env.nodes_visited, if pv_str.is_empty() { format!("{}", mv) } else { pv_str }
-            );
+                println!(
+                    "info depth {} score {} nodes {} pv {}",
+                    d, score_str, env.nodes_visited, if pv_str.is_empty() { format!("{}", mv) } else { pv_str }
+                );
+            }
+
         }
     }
 

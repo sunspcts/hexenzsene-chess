@@ -8,6 +8,7 @@ use crate::moves::MoveList;
 pub struct SearchEnv<'a> {
     pub nodes_visited: u64, // TOTAL nodes visited across the search.
     pub node_limit: u64, // Node count at which the search returns early.
+    pub silent: bool, // When true, suppresses stdout info output (used for benchmarks).
     pub hash_history: Vec<u64>, // History of zobrist hashes, used for repetition detection.
     pub search_control: SearchControl, // Wrapper around an Arc<AtomicBool>, so the engine thread can stop the search thread. Polled occasionally.
     pub stopped: bool,

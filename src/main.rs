@@ -1,12 +1,4 @@
-mod bitboard;
-mod board;
-mod engine;
-mod eval;
-mod heuristics;
-mod movegen;
-mod moves;
-mod piece;
-mod search;
+use hexenzsene_chess::engine;
 
 fn main() {
     println!("Ferrite Chess v0.2.0");

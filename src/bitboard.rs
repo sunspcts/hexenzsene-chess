@@ -115,15 +115,19 @@ impl std::ops::Not for Bitboard {
 }
 
 impl Bitboard {
-    pub fn trailing_zeros(&self) -> u32 {
+
+    #[inline(always)]
+    pub fn trailing_zeros(self) -> u32 {
         self.0.trailing_zeros()
     }
-
-    pub fn leading_zeros(&self) -> u32 {
+    
+    #[inline(always)]
+    pub fn leading_zeros(self) -> u32 {
         self.0.leading_zeros()
     }
 
-    pub fn count_ones(&self) -> u32 {
+    #[inline(always)]
+    pub fn count_ones(self) -> u32 {
         self.0.count_ones()
     }
 }

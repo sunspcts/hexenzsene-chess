@@ -2,3 +2,7 @@
 name = "hexenzsene-chess"
 version = "0.2.0"
 edition = "2024"
+
+[profile.release-with-debug]
+inherits = "release"
+debug = true

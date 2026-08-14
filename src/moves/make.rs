@@ -12,6 +12,8 @@ impl Board {
         let piece = board[from];
         let flags = mv.flags();
 
+        let mut zobrist_delta = 0;
+
         // are we castling? either direction.
         if flags & 0b1110 == move_flags::KING_CASTLE {
             let transit_sq = match to {
@@ -23,7 +25,7 @@ impl Board {
             };
             // We check if the to square is attacked at the end of the function anyway.
             // Checking here might give a *tiny* speedup from the early return? Will test at some point but there are more pressing matters ^_^
-            if self.is_attacked(from, enemy) || self.is_attacked(transit_sq, enemy) {
+            if self.is_attacked(from, enemy) || self.is_attacked(transit_sq, enemy) || self.is_attacked(to, enemy){
                 return None;
             }
         }
@@ -31,7 +33,7 @@ impl Board {
         board.game_state.inc_halfmoves();
         // xoring out the old ep square.
         if let Some(old_ep_square) = board.game_state.en_passant_square {
-            board.game_state.curr_zobrist_key ^= ZOBRIST_RANDOMS[768 + 16 + (old_ep_square % 8) as usize];
+            zobrist_delta ^= ZOBRIST_RANDOMS[768 + 16 + (old_ep_square % 8) as usize];
             board.game_state.en_passant_square = None;
         }
 
@@ -72,7 +74,7 @@ impl Board {
             if flags == move_flags::DOUBLE_PAWN_PUSH {
                 let ep_square = ((from + to) / 2) as u8; // easiest way to calculate intermediate square without any side conditionals.
                 board.game_state.en_passant_square = Some(ep_square);
-                board.game_state.curr_zobrist_key ^= ZOBRIST_RANDOMS[768 + 16 + (ep_square % 8) as usize];
+                zobrist_delta ^= ZOBRIST_RANDOMS[768 + 16 + (ep_square % 8) as usize];
             }
         }
 
@@ -99,7 +101,7 @@ impl Board {
 
         // Switch the active side and update the hash.
         board.game_state.active_side = enemy;
-        board.game_state.curr_zobrist_key ^= ZOBRIST_RANDOMS[768 + 16 + 8];
+        board.game_state.curr_zobrist_key ^= zobrist_delta ^ ZOBRIST_RANDOMS[768 + 16 + 8];
 
         let king_square = board.piece_bb[side as usize][Piece::King as usize].trailing_zeros() as u16;
         let is_legal = !board.is_attacked(king_square, enemy);

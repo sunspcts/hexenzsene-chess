@@ -1,7 +1,7 @@
 use crate::{movegen::attacks::KNIGHT_ATTACKS, bitboard::Bitboard, board::Board, piece::Piece};
 
-pub const KNIGHT_MOBILITY_MG: [i64; 9] = [-13, -7, -1, -2, 1, 4, 7, 7, 9]; // "tuned". idk.
-pub const KNIGHT_MOBILITY_EG: [i64; 9] = [-17, -11, -4, 2, 5, 9, 9, 13, 15]; 
+pub const KNIGHT_MOBILITY_MG: [i64; 9] = [-38, -20, -11, -8, -5, -1, 5, 9, 13];
+pub const KNIGHT_MOBILITY_EG: [i64; 9] = [-39, -10, 3, 6, 7, 10, 8, 3, -7]; 
 
 const NOT_A_FILE: Bitboard = Bitboard::new(!0x0101010101010101);
 const NOT_H_FILE: Bitboard = Bitboard::new(!0x8080808080808080);

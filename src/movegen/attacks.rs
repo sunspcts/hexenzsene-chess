@@ -155,3 +155,4 @@ pub fn get_ray_attacks(sq: u16, dir: usize, occupancy: Bitboard) -> Bitboard {
     let shadow = RAYS[dir][blocker_sq]; 
     ray ^ shadow
 }
+

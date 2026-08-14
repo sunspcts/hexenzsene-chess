@@ -6,4 +6,5 @@ pub mod heuristics;
 pub mod movegen;
 pub mod moves;
 pub mod piece;
+pub mod rng;
 pub mod search;

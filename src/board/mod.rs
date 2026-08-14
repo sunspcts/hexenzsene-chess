@@ -4,6 +4,8 @@ mod init;
 mod state;
 mod null_moves;
 
+use crate::rng::Xorshift;
+
 #[cfg(test)]
 mod tests;
 

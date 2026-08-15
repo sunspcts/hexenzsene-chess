@@ -1,5 +1,4 @@
 use super::*;
-
 use crate::{bitboard::Bitboard, moves::MoveList, piece::Piece};
 
 impl Board {
@@ -17,10 +16,10 @@ impl Board {
 
         // The compiler will hopefully inline this match statement out.
         let raw_attacks = match piece {
-            Piece::Rook => magic_sliders::get_rook_attacks(occupancy, from_sq),
-            Piece::Bishop => magic_sliders::get_bishop_attacks(occupancy, from_sq),
+            Piece::Rook => unsafe { magic_sliders::get_rook_attacks(occupancy, from_sq) },
+            Piece::Bishop => unsafe { magic_sliders::get_bishop_attacks(occupancy, from_sq) },
             // Queen's attack set is identical to the complement of the Rook and Bishop. Nifty!
-            Piece::Queen => magic_sliders::get_rook_attacks(occupancy, from_sq) | magic_sliders::get_bishop_attacks(occupancy, from_sq),
+            Piece::Queen => unsafe { magic_sliders::get_rook_attacks(occupancy, from_sq) | magic_sliders::get_bishop_attacks(occupancy, from_sq) },
             _ => unreachable!("Piece passed to generate_slider_moves is not a slider!"),
         };
 
@@ -50,10 +49,10 @@ impl Board {
         let occupancy = self.side_bb[0] | self.side_bb[1];
 
         let captures = match piece {
-            Piece::Rook => magic_sliders::get_rook_attacks(occupancy, from_sq),
-            Piece::Bishop => magic_sliders::get_bishop_attacks(occupancy, from_sq),
+            Piece::Rook => unsafe { magic_sliders::get_rook_attacks(occupancy, from_sq) },
+            Piece::Bishop => unsafe { magic_sliders::get_bishop_attacks(occupancy, from_sq) },
             // Queen's attack set is identical to the complement of the Rook and Bishop. Nifty!
-            Piece::Queen => magic_sliders::get_rook_attacks(occupancy, from_sq) | magic_sliders::get_bishop_attacks(occupancy, from_sq),
+            Piece::Queen => unsafe { magic_sliders::get_rook_attacks(occupancy, from_sq) | magic_sliders::get_bishop_attacks(occupancy, from_sq) },
             _ => panic!("Piece passed to generate_slider_moves is not a slider!"),
         } & enemy_pieces;
 
@@ -64,11 +63,11 @@ impl Board {
 
     pub fn get_rook_attacks(&self, sq: u16) -> Bitboard {
         let occupancy = self.side_bb[0] | self.side_bb[1];
-        magic_sliders::get_rook_attacks(occupancy, sq)
+        unsafe { magic_sliders::get_rook_attacks(occupancy, sq) }
     }
 
     pub fn get_bishop_attacks(&self, sq: u16) -> Bitboard {
         let occupancy = self.side_bb[0] | self.side_bb[1];
-        magic_sliders::get_bishop_attacks(occupancy, sq)
+        unsafe { magic_sliders::get_bishop_attacks(occupancy, sq) }
     }
 }

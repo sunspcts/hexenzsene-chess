@@ -12,6 +12,7 @@ use crate::board::{Board, Side};
 //Pseudolegal move generation. Legality checking is done at the make_move() stage.
 impl Board {
     pub fn generate_pseudolegal_moves(&self, moves: &mut MoveList) {
+        
         moves.clear();
         let side = self.game_state.active_side;
         self.generate_pawn_moves(moves);

@@ -91,7 +91,8 @@ impl TT {
     #[inline(always)]
     pub fn get(&self, zobrist_key: u64) -> Option<TTEntry> {
         let index = (zobrist_key as usize) & self.mask;
-        let entry = self.entries[index];
+        debug_assert!(index < self.entries.len());
+        let entry = unsafe { *self.entries.get_unchecked(index) };
         if entry.node_type != NodeType::None && entry.zobrist_key == zobrist_key {
             Some(entry)
         } else {
@@ -101,7 +102,8 @@ impl TT {
 
     pub fn store(&mut self, entry: TTEntry) {
         let index = (entry.zobrist_key as usize) & self.mask;
-        let existing = self.entries[index];
+        debug_assert!(index < self.entries.len());
+        let existing = unsafe { *self.entries.get_unchecked(index) };
         let mut entry = entry;
         if existing.node_type != NodeType::None {
             let is_stale = existing.age != entry.age;
@@ -117,7 +119,7 @@ impl TT {
 
                 if existing_is_better {
                     if existing.zobrist_key == entry.zobrist_key && existing.move_data == 0 && entry.move_data != 0 {
-                        self.entries[index].move_data = entry.move_data;
+                        unsafe { self.entries.get_unchecked_mut(index).move_data = entry.move_data; }
                     }
                     return;
                 }
@@ -126,6 +128,6 @@ impl TT {
                 entry.move_data = existing.move_data;
             }
         }
-        self.entries[index] = entry;
+        unsafe { *self.entries.get_unchecked_mut(index) = entry; }
     }
 }

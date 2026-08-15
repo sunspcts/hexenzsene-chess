@@ -7,7 +7,7 @@ mod null_moves;
 #[cfg(test)]
 mod tests;
 
-use crate::{movegen::{attacks::{KING_ATTACKS, KNIGHT_ATTACKS, PAWN_ATTACKS}, magic_sliders}, bitboard::Bitboard, piece::Piece};
+use crate::{bitboard::Bitboard, movegen::{attacks::{KING_ATTACKS, KNIGHT_ATTACKS, PAWN_ATTACKS}, magic_sliders}, piece::Piece};
 
 // CONSTANT VALUES
 
@@ -121,14 +121,14 @@ impl Board {
         let enemy_queens = attacker_pieces[Piece::Queen as usize];
         let diagonal_attackers = attacker_pieces[Piece::Bishop as usize] | enemy_queens;
         if diagonal_attackers != Bitboard::zero() {
-            if (magic_sliders::get_bishop_attacks(occupancy, square) & diagonal_attackers) != Bitboard::zero() {
+            if (unsafe { magic_sliders::get_bishop_attacks(occupancy, square) } & diagonal_attackers) != Bitboard::zero() {
                 return true;
             }
         }
 
         let orthogonal_attackers = attacker_pieces[Piece::Rook as usize] | enemy_queens;
         if orthogonal_attackers != Bitboard::zero() {
-            if (magic_sliders::get_rook_attacks(occupancy, square) & orthogonal_attackers) != Bitboard::zero() {
+            if (unsafe { magic_sliders::get_rook_attacks(occupancy, square) } & orthogonal_attackers) != Bitboard::zero() {
                 return true;
             }
         }
@@ -165,7 +165,6 @@ impl Board {
         self.game_state.curr_zobrist_key = key
     }
 
-
     // I'm going to replace this with a lookup table soon.
     pub fn update_castling_rights(&mut self, from_sq: u16, to_sq: u16) {
         let old_castling = self.game_state.castling;
@@ -190,13 +189,12 @@ impl Board {
             self.game_state.curr_zobrist_key ^= ZOBRIST_RANDOMS[768 + self.game_state.castling as usize];
         }
     }
-
     // I can probably use a simplified function compared to is_attacked for this.
+    #[inline(always)]
     pub fn is_in_check(&self) -> bool {
         let side = self.game_state.active_side;
         let king_bb = self.piece_bb[side as usize][Piece::King as usize];
         let king_square = king_bb.trailing_zeros() as u16;
-
         self.is_attacked(king_square, side.flip())
     }
 

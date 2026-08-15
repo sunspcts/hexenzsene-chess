@@ -1,14 +1,12 @@
 use crate::bitboard::Bitboard;
 use crate::rng::Xorshift;
 use super::legacy_sliders;
-use std::sync::OnceLock;
 
 const OUTER_EDGE: Bitboard = Bitboard::new(0xFF818181818181FF);
 
-pub static ROOK_MAGICS: OnceLock<MagicTable> = OnceLock::new();
-pub static BISHOP_MAGICS: OnceLock<MagicTable> = OnceLock::new();
+static mut MAGICS_PTR: *const MagicTable = std::ptr::null();
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct MagicEntry {
     pub mask: Bitboard,
     pub magic: u64,
@@ -17,39 +15,78 @@ pub struct MagicEntry {
 }
 
 pub struct MagicTable {
-    pub entries: [MagicEntry; 64],
+    // 0..64: Bishops, 64..128: Rooks
+    pub entries: [MagicEntry; 128],
     pub attacks: Vec<Bitboard>,
 }
 
 impl MagicTable {
+    // UNSAFE:
+    // entry_idx must be < 128
     #[inline(always)]
-    pub fn get_attacks(&self, blockers: Bitboard, square: u16) -> Bitboard {
-        // In any normal code paths, square < 64.
+    pub unsafe fn get_attacks(&self, blockers: Bitboard, entry_idx: usize) -> Bitboard {
+        debug_assert!(entry_idx < 128, "Magic entry index out of bounds: {}", entry_idx);
         let entry = unsafe { 
-            self.entries.get_unchecked(square as usize) 
+            self.entries.get_unchecked(entry_idx) 
         };
         let index = blockers.magic_index(entry.mask, entry.magic, entry.shift as usize);
         unsafe { *self.attacks.get_unchecked(entry.offset as usize + index) }
     }
-}
 
-pub fn init_magics() {
-    if ROOK_MAGICS.get().is_none() {
-        let _ = ROOK_MAGICS.set(init_magic_table(true));
-        let _ = BISHOP_MAGICS.set(init_magic_table(false));
+    // UNSAFE:
+    // square < 64
+    #[inline(always)]
+    pub unsafe fn bishop_attacks(&self, blockers: Bitboard, square: u16) -> Bitboard {
+        debug_assert!(square < 64, "Bishop square index out of bounds: {}", square);
+        unsafe { self.get_attacks(blockers, square as usize) }
+    }
+
+    // UNSAFE:
+    // square < 64
+    #[inline(always)]
+    pub unsafe fn rook_attacks(&self, blockers: Bitboard, square: u16) -> Bitboard {
+        debug_assert!(square < 64, "Rook square index out of bounds: {}", square);
+        unsafe { self.get_attacks(blockers, 64 + square as usize) }
     }
 }
 
-// ROOK_MAGICS and BISHOP_MAGICS MUST (and will be) initialized on engine start.
-// In future, I should be marking these functions as unsafe because I don't trust myself 
-// if I'm, say, writing tests to remember to initialize these. But, I'd want to implement
-// a proper safe API around them, because I don't want any unsafe blocks in the engine code.
-pub fn get_rook_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
-    unsafe { ROOK_MAGICS.get().unwrap_unchecked() }.get_attacks(occupancy, square)
+pub fn init_magics() {
+    unsafe {
+        if MAGICS_PTR.is_null() {
+            let table = Box::leak(Box::new(init_magic_table()));
+            MAGICS_PTR = table as *const MagicTable;
+        }
+    }
 }
 
-pub fn get_bishop_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
-    unsafe { BISHOP_MAGICS.get().unwrap_unchecked() }.get_attacks(occupancy, square)
+// UNSAFE
+// magics must have been initialized
+#[inline(always)]
+pub unsafe fn magics() -> &'static MagicTable {
+    unsafe {
+        debug_assert!(!MAGICS_PTR.is_null(), "Magics must be initialized before access");
+        &*MAGICS_PTR
+    }
+}
+
+// UNSAFE
+// magics must have been initialized, square < 64
+#[inline(always)]
+pub unsafe fn get_rook_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
+    unsafe {
+        debug_assert!(!MAGICS_PTR.is_null(), "Magics must be initialized before access");
+        (*MAGICS_PTR).rook_attacks(occupancy, square)
+    }
+}
+
+// UNSAFE
+// magics must have been initialized, square < 64
+#[inline(always)]
+pub unsafe fn get_bishop_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
+    unsafe {
+        debug_assert!(!MAGICS_PTR.is_null(), "Magics must be initialized before access");
+        (*MAGICS_PTR).bishop_attacks(occupancy, square)
+    }
 }
 
 fn compute_rook_mask(sq: usize) -> Bitboard {
@@ -127,31 +164,32 @@ fn find_magic(sq: usize, mask: Bitboard, is_rook: bool, rng: &mut Xorshift) -> (
     }
 }
 
-fn init_magic_table(is_rook: bool) -> MagicTable {
+fn init_magic_table() -> MagicTable {
     let mut rng = Xorshift::default();
-    let mut entries = [MagicEntry {
-        mask: Bitboard::zero(),
-        magic: 0,
-        shift: 0,
-        offset: 0,
-    }; 64];
-    let mut attacks = Vec::new();
+    let mut entries = [MagicEntry::default(); 128];
+    let mut attacks = Vec::with_capacity(108_000);
 
+    // 1. Bishops (indices 0..64)
     for sq in 0..64 {
-        let mask = if is_rook {
-            compute_rook_mask(sq)
-        } else {
-            compute_bishop_mask(sq)
-        };
-
-        let (mut entry, square_attacks) = find_magic(sq, mask, is_rook, &mut rng);
+        let mask = compute_bishop_mask(sq);
+        let (mut entry, square_attacks) = find_magic(sq, mask, false, &mut rng);
         entry.offset = attacks.len() as u32;
         entries[sq] = entry;
         attacks.extend_from_slice(&square_attacks);
     }
 
+    // 2. Rooks (indices 64..128)
+    for sq in 0..64 {
+        let mask = compute_rook_mask(sq);
+        let (mut entry, square_attacks) = find_magic(sq, mask, true, &mut rng);
+        entry.offset = attacks.len() as u32;
+        entries[64 + sq] = entry;
+        attacks.extend_from_slice(&square_attacks);
+    }
+
+    attacks.shrink_to_fit();
     MagicTable {
         entries,
-        attacks
+        attacks,
     }
 }

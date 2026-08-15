@@ -1,9 +1,10 @@
-pub mod attacks;
 mod pawns;
 mod leapers;
 mod sliders;
 mod castling;
-
+pub mod attacks;
+pub mod magic_sliders;
+pub mod legacy_sliders;
 use crate::{moves::*, piece::Piece};
 
 use crate::board::{Board, Side};

@@ -32,7 +32,7 @@ const KNIGHT_OFFSETS: [(i8, i8); 8] = [
 const A_FILE: u64 = 0x0101010101010101;
 const H_FILE: u64 = 0x8080808080808080;
 
-const IS_POS_DIR: [usize; 8] = [usize::MAX, 0, usize::MAX, 0, usize::MAX, usize::MAX, 0, 0];
+pub const IS_POS_DIR: [usize; 8] = [usize::MAX, 0, usize::MAX, 0, usize::MAX, usize::MAX, 0, 0];
 
 const fn init_leaper_attacks(offsets: &[(i8, i8)]) -> [Bitboard; 64] {
     let mut attacks = [Bitboard::zero(); 64];
@@ -118,41 +118,5 @@ const fn init_ray_lookup() -> [[Bitboard; 64]; 8] {
         sq += 1;
     }
     rays
-}
-
-// This isn't a constant! I thought this was the constant file! 
-pub fn get_ray_attacks(sq: u16, dir: usize, occupancy: Bitboard) -> Bitboard {
-
-    // Blockers is a bitboard of ANY piece that could block our slider.
-    let ray = RAYS[dir][sq as usize];
-    let blockers = ray & occupancy;
-
-    if blockers == Bitboard::zero() {
-        return ray
-    }
-    
-    /* In our quest to avoid any branching whatsoever, we reach this utter bullshit. 
-    N, E, NE, and NW are considered "positive" ray directions, since to move a piece 
-    in these directions we shift our bitboard left.
-    Naturally, S, W, SE, and SW are considered negative, due to the right bitshift.
-    
-    In the case of a positive ray, the first blocking piece is the first piece on a 
-    square with index HIGHER than our own, so we can find its index by doing a forward
-    bitscan. Similarly, we find the index of the first blocking piece for a negative ray
-    by doing a backward bitscan.*/ 
-
-    let blocker_sq_pos = blockers.trailing_zeros() as usize;
-    let blocker_sq_neg = 63 ^ (blockers.leading_zeros() as usize); 
-
-    // This lookup table assigns positive rays an identity mask, and negative rays a null mask.
-    let mask = IS_POS_DIR[dir];
-
-    /*  Selects blocker square. If the ray is positive, mask is identity, and !mask is null, so
-    blocker_sq = blocker_sq_pos. If negative the opposite is true. */
-    let blocker_sq = (blocker_sq_pos & mask) | (blocker_sq_neg & !mask);
-    
-    // Cast a ray from the blocking piece.
-    let shadow = RAYS[dir][blocker_sq]; 
-    ray ^ shadow
 }
 

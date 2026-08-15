@@ -299,6 +299,7 @@ mod tests {
 
     #[test]
     fn parse_uci_position_from_startpos() {
+        crate::movegen::magic_sliders::init_magics();
         let startpos_board = Board::new_from_fen(STARTPOS_FEN);
         // Scotch my beloved <3
         let (board, _) = parse_uci_position(startpos_board, "position startpos moves e2e4 e7e5 g1f3 b8c6 d2d4");

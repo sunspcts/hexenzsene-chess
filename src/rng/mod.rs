@@ -13,13 +13,13 @@ impl Default for Xorshift {
 }
 
 impl Xorshift {
-    fn next(&mut self) -> u64 {
+    pub fn next(&mut self) -> u64 {
         self.state ^= self.state << 13;
         self.state ^= self.state >> 7;
         self.state ^= self.state << 5;
         self.state
     }
-    fn magic_candidate(&mut self) -> u64 {
+    pub fn magic_candidate(&mut self) -> u64 {
         self.next() & self.next() & self.next()
     }
 }

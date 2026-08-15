@@ -2,6 +2,7 @@ use super::*;
 
 #[test]
 fn test_make_null_move() {
+    crate::movegen::magic_sliders::init_magics();
     let board = Board::new_from_fen("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1");
     let null_board = board.make_null_move();
 

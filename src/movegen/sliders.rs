@@ -1,11 +1,6 @@
 use super::*;
-// See attacks.rs for lookup table generation.
-use super::attacks::*;
 
 use crate::{bitboard::Bitboard, moves::MoveList, piece::Piece};
-
-// We currently use raycasting to generate sliding piece moves.
-// A future version of the engine will probably use magic bitboards, but I didn't fully understand them at the time of implementing movegen.
 
 impl Board {
     pub fn generate_slider_moves(
@@ -18,13 +13,14 @@ impl Board {
         let friendly_pieces = self.side_bb[side];
         //XORing here saves us an (albeit unlikely to be mispredicted) branch.
         let enemy_pieces = self.side_bb[side ^ 1];
+        let occupancy = self.side_bb[0] | self.side_bb[1];
 
         // The compiler will hopefully inline this match statement out.
         let raw_attacks = match piece {
-            Piece::Rook => self.get_rook_attacks(from_sq),
-            Piece::Bishop => self.get_bishop_attacks(from_sq),
+            Piece::Rook => magic_sliders::get_rook_attacks(occupancy, from_sq),
+            Piece::Bishop => magic_sliders::get_bishop_attacks(occupancy, from_sq),
             // Queen's attack set is identical to the complement of the Rook and Bishop. Nifty!
-            Piece::Queen => self.get_rook_attacks(from_sq) | self.get_bishop_attacks(from_sq),
+            Piece::Queen => magic_sliders::get_rook_attacks(occupancy, from_sq) | magic_sliders::get_bishop_attacks(occupancy, from_sq),
             _ => unreachable!("Piece passed to generate_slider_moves is not a slider!"),
         };
 
@@ -51,12 +47,13 @@ impl Board {
     ) {
         let side = self.game_state.active_side as usize;
         let enemy_pieces = self.side_bb[side ^ 1];
+        let occupancy = self.side_bb[0] | self.side_bb[1];
 
         let captures = match piece {
-            Piece::Rook => self.get_rook_attacks(from_sq),
-            Piece::Bishop => self.get_bishop_attacks(from_sq),
+            Piece::Rook => magic_sliders::get_rook_attacks(occupancy, from_sq),
+            Piece::Bishop => magic_sliders::get_bishop_attacks(occupancy, from_sq),
             // Queen's attack set is identical to the complement of the Rook and Bishop. Nifty!
-            Piece::Queen => self.get_rook_attacks(from_sq) | self.get_bishop_attacks(from_sq),
+            Piece::Queen => magic_sliders::get_rook_attacks(occupancy, from_sq) | magic_sliders::get_bishop_attacks(occupancy, from_sq),
             _ => panic!("Piece passed to generate_slider_moves is not a slider!"),
         } & enemy_pieces;
 
@@ -65,30 +62,13 @@ impl Board {
         }
     }
 
-    // Essentially just wrappers around get_ray_attacks. 
     pub fn get_rook_attacks(&self, sq: u16) -> Bitboard {
-        let dirs = [0,1,2,3]; // N, S, E, W
         let occupancy = self.side_bb[0] | self.side_bb[1];
-
-        let mut raw_attacks: Bitboard = Bitboard::zero();
-
-        for dir in dirs {
-            raw_attacks |= get_ray_attacks(sq, dir, occupancy)
-        }
-
-        raw_attacks
+        magic_sliders::get_rook_attacks(occupancy, sq)
     }
 
     pub fn get_bishop_attacks(&self, sq: u16) -> Bitboard {
-        let dirs = [4,5,6,7]; // NE, NW, SE, SW
         let occupancy = self.side_bb[0] | self.side_bb[1];
-
-        let mut raw_attacks: Bitboard = Bitboard::zero();
-
-        for dir in dirs {
-            raw_attacks |= get_ray_attacks(sq, dir, occupancy)
-        }
-
-        raw_attacks
+        magic_sliders::get_bishop_attacks(occupancy, sq)
     }
 }

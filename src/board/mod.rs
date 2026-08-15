@@ -4,12 +4,10 @@ mod init;
 mod state;
 mod null_moves;
 
-use crate::rng::Xorshift;
-
 #[cfg(test)]
 mod tests;
 
-use crate::{movegen::attacks::{KING_ATTACKS, KNIGHT_ATTACKS, PAWN_ATTACKS}, bitboard::Bitboard, piece::Piece};
+use crate::{movegen::{attacks::{KING_ATTACKS, KNIGHT_ATTACKS, PAWN_ATTACKS}, magic_sliders}, bitboard::Bitboard, piece::Piece};
 
 // CONSTANT VALUES
 
@@ -88,7 +86,6 @@ impl std::ops::IndexMut<u16> for Board {
 }
 
 impl Board {
-
     // Only called during initial zobrist hash computation.
     fn get_side_at(&self, square: u16) -> Option<Side> {
         let mask = Bitboard::new(1 << square);
@@ -100,38 +97,47 @@ impl Board {
         None
     }
 
-    // TODO: Rewrite this maybe? Might be unnecessary. Profiling will tell me :)
+    #[inline(always)]
     pub fn is_attacked(&self, square: u16, attacker_side: Side) -> bool {
         let attacker = attacker_side as usize;
         let defender = (attacker_side as usize) ^ 1;
+        let sq = square as usize;
+        let attacker_pieces = self.piece_bb[attacker];
 
         // This function assumes a "super-piece" on square, generates attacks from the super-piece rather than from the opponent pieces themselves.
         // Saves extremely costly iteration over every piece on the board .
 
-        let enemy_knights = self.piece_bb[attacker][Piece::Knight as usize];
-        if (KNIGHT_ATTACKS[square as usize] & enemy_knights) != Bitboard::zero() {
+        let enemy_pawns = attacker_pieces[Piece::Pawn as usize];
+        if (unsafe { *PAWN_ATTACKS.get_unchecked(defender).get_unchecked(sq) } & enemy_pawns) != Bitboard::zero() {
             return true;
         }
 
-        let enemy_king = self.piece_bb[attacker][Piece::King as usize];
-        if (KING_ATTACKS[square as usize] & enemy_king) != Bitboard::zero() {
+        let enemy_knights = attacker_pieces[Piece::Knight as usize];
+        if (unsafe { *KNIGHT_ATTACKS.get_unchecked(sq) } & enemy_knights) != Bitboard::zero() {
             return true;
         }
 
-        let enemy_pawns = self.piece_bb[attacker][Piece::Pawn as usize];
-        if (PAWN_ATTACKS[defender][square as usize] & enemy_pawns) != Bitboard::zero() {
+        let occupancy = self.side_bb[0] | self.side_bb[1];
+        let enemy_queens = attacker_pieces[Piece::Queen as usize];
+        let diagonal_attackers = attacker_pieces[Piece::Bishop as usize] | enemy_queens;
+        if diagonal_attackers != Bitboard::zero() {
+            if (magic_sliders::get_bishop_attacks(occupancy, square) & diagonal_attackers) != Bitboard::zero() {
+                return true;
+            }
+        }
+
+        let orthogonal_attackers = attacker_pieces[Piece::Rook as usize] | enemy_queens;
+        if orthogonal_attackers != Bitboard::zero() {
+            if (magic_sliders::get_rook_attacks(occupancy, square) & orthogonal_attackers) != Bitboard::zero() {
+                return true;
+            }
+        }
+
+        let enemy_king = attacker_pieces[Piece::King as usize];
+        if (unsafe { *KING_ATTACKS.get_unchecked(sq) } & enemy_king) != Bitboard::zero() {
             return true;
         }
 
-        let diagonal_attackers = self.piece_bb[attacker][Piece::Bishop as usize] | self.piece_bb[attacker][Piece::Queen as usize];
-        if (self.get_bishop_attacks(square) & diagonal_attackers) != Bitboard::zero() {
-            return true;
-        }
-
-        let orthogonal_attackers = self.piece_bb[attacker][Piece::Rook as usize] | self.piece_bb[attacker][Piece::Queen as usize];
-        if (self.get_rook_attacks(square) & orthogonal_attackers) != Bitboard::zero() {
-            return true;
-        }
         false
     }
 

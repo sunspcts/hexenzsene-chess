@@ -130,6 +130,11 @@ impl Bitboard {
     pub fn count_ones(self) -> u32 {
         self.0.count_ones()
     }
+
+    #[inline(always)]
+    pub fn magic_index(self, mask: Bitboard, magic: u64, shift: usize) -> usize {
+        ((self.0 & mask.0).wrapping_mul(magic) >> shift) as usize
+    }
 }
 
 impl Iterator for Bitboard {

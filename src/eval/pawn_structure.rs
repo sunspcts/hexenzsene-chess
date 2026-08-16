@@ -17,7 +17,7 @@ const ADJACENT_FILE_MASKS: [Bitboard; 8] = [
     Bitboard::new(FILE_D | FILE_F),
     Bitboard::new(FILE_E | FILE_G),
     Bitboard::new(FILE_F | FILE_H),
-    Bitboard::new(FILE_G)
+    Bitboard::new(FILE_G),
 ];
 
 pub const FILE_MASKS: [Bitboard; 8] = [

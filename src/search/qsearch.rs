@@ -8,7 +8,9 @@ pub(super) fn quiescense(board: &Board, mut context: SearchContext, env: &mut Se
     env.pv_length[ply] = 0;
     env.pv_table[ply][0] = Move::new_from_raw(0);
 
-    if env.step_node_and_check() { return 0; }
+    if env.step_node_and_check() {
+        return 0;
+    }
 
     let static_eval = eval(board);
     let mut best_value = static_eval;

@@ -1,7 +1,8 @@
-use crate::bitboard::Bitboard;
 use super::*;
+use crate::bitboard::Bitboard;
 
 //PeSTO tables.
+#[rustfmt::skip]
 pub(super) const MG_PAWN_PST: [i64; 64] = [
       0,   0,   0,   0,   0,   0,  0,   0,
      98, 134,  61,  95,  68, 126, 34, -11,
@@ -13,6 +14,7 @@ pub(super) const MG_PAWN_PST: [i64; 64] = [
       0,   0,   0,   0,   0,   0,  0,   0,
 ];
 
+#[rustfmt::skip]
 pub(super) const EG_PAWN_PST: [i64; 64] = [
       0,   0,   0,   0,   0,   0,   0,   0,
     178, 173, 158, 134, 147, 132, 165, 187,
@@ -24,6 +26,7 @@ pub(super) const EG_PAWN_PST: [i64; 64] = [
       0,   0,   0,   0,   0,   0,   0,   0,
 ];
 
+#[rustfmt::skip]
 pub(super) const MG_KNIGHT_PST: [i64; 64] = [
     -167, -89, -34, -49,  61, -97, -15, -107,
      -73, -41,  72,  36,  23,  62,   7,  -17,
@@ -35,6 +38,7 @@ pub(super) const MG_KNIGHT_PST: [i64; 64] = [
     -105, -21, -58, -33, -17, -28, -19,  -23,
 ];
 
+#[rustfmt::skip]
 pub(super) const EG_KNIGHT_PST: [i64; 64] = [
     -58, -38, -13, -28, -31, -27, -63, -99,
     -25,  -8, -25,  -2,  -9, -25, -24, -52,
@@ -46,6 +50,7 @@ pub(super) const EG_KNIGHT_PST: [i64; 64] = [
     -29, -51, -23, -15, -22, -18, -50, -64,
 ];
 
+#[rustfmt::skip]
 pub(super) const MG_BISHOP_PST: [i64; 64] = [
     -29,   4, -82, -37, -25, -42,   7,  -8,
     -26,  16, -18, -13,  30,  59,  18, -47,
@@ -57,6 +62,7 @@ pub(super) const MG_BISHOP_PST: [i64; 64] = [
     -33,  -3, -14, -21, -13, -12, -39, -21,
 ];
 
+#[rustfmt::skip]
 pub(super) const EG_BISHOP_PST: [i64; 64] = [
     -14, -21, -11,  -8, -7,  -9, -17, -24,
      -8,  -4,   7, -12, -3, -13,  -4, -14,
@@ -68,6 +74,7 @@ pub(super) const EG_BISHOP_PST: [i64; 64] = [
     -23,  -9, -23,  -5, -9, -16,  -5, -17,
 ];
 
+#[rustfmt::skip]
 pub(super) const MG_ROOK_PST: [i64; 64] = [
      32,  42,  32,  51, 63,  9,  31,  43,
      27,  32,  58,  62, 80, 67,  26,  44,
@@ -79,6 +86,7 @@ pub(super) const MG_ROOK_PST: [i64; 64] = [
     -19, -13,   1,  17, 16,  7, -37, -26,
 ];
 
+#[rustfmt::skip]
 pub(super) const EG_ROOK_PST: [i64; 64] = [
     13, 10, 18, 15, 12,  12,   8,   5,
     11, 13, 13, 11, -3,   3,   8,   3,
@@ -90,6 +98,7 @@ pub(super) const EG_ROOK_PST: [i64; 64] = [
     -9,  2,  3, -1, -5, -13,   4, -20,
 ];
 
+#[rustfmt::skip]
 pub(super) const MG_QUEEN_PST: [i64; 64] = [
     -28,   0,  29,  12,  59,  44,  43,  45,
     -24, -39,  -5,   1, -16,  57,  28,  54,
@@ -101,6 +110,7 @@ pub(super) const MG_QUEEN_PST: [i64; 64] = [
      -1, -18,  -9,  10, -15, -25, -31, -50,
 ];
 
+#[rustfmt::skip]
 pub(super) const EG_QUEEN_PST: [i64; 64] = [
      -9,  22,  22,  27,  27,  19,  10,  20,
     -17,  20,  32,  41,  58,  25,  30,   0,
@@ -112,6 +122,7 @@ pub(super) const EG_QUEEN_PST: [i64; 64] = [
     -33, -28, -22, -43,  -5, -32, -20, -41,
 ];
 
+#[rustfmt::skip]
 pub(super) const MG_KING_PST: [i64; 64] = [
     -65,  23,  16, -15, -56, -34,   2,  13,
      29,  -1, -20,  -7,  -8,  -4, -38, -29,
@@ -123,6 +134,7 @@ pub(super) const MG_KING_PST: [i64; 64] = [
     -15,  36,  12, -54,   8, -28,  24,  14,
 ];
 
+#[rustfmt::skip]
 pub(super) const EG_KING_PST: [i64; 64] = [
     -74, -35, -18, -18, -11,  15,   4, -17,
     -12,  17,  14,  17,  17,  38,  23,  11,
@@ -134,12 +146,25 @@ pub(super) const EG_KING_PST: [i64; 64] = [
     -53, -34, -21, -11, -28, -14, -24, -43
 ];
 
-pub(super) const MG_PSTS: [[i64; 64]; 6] = [MG_PAWN_PST, MG_KNIGHT_PST, MG_BISHOP_PST, MG_ROOK_PST, MG_QUEEN_PST, MG_KING_PST];
-pub(super) const EG_PSTS: [[i64; 64]; 6] = [EG_PAWN_PST, EG_KNIGHT_PST, EG_BISHOP_PST, EG_ROOK_PST, EG_QUEEN_PST, EG_KING_PST];
+pub(super) const MG_PSTS: [[i64; 64]; 6] = [
+    MG_PAWN_PST,
+    MG_KNIGHT_PST,
+    MG_BISHOP_PST,
+    MG_ROOK_PST,
+    MG_QUEEN_PST,
+    MG_KING_PST,
+];
+pub(super) const EG_PSTS: [[i64; 64]; 6] = [
+    EG_PAWN_PST,
+    EG_KNIGHT_PST,
+    EG_BISHOP_PST,
+    EG_ROOK_PST,
+    EG_QUEEN_PST,
+    EG_KING_PST,
+];
 
-pub(super) const MG_PIECE_VALUES: [i64; 6] = [82, 337, 365, 477, 1025,  0];
-pub(super) const EG_PIECE_VALUES: [i64; 6] = [94, 281, 297, 512,  936,  0];
-
+pub(super) const MG_PIECE_VALUES: [i64; 6] = [82, 337, 365, 477, 1025, 0];
+pub(super) const EG_PIECE_VALUES: [i64; 6] = [94, 281, 297, 512, 936, 0];
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn calc_tapered_score_with_params(

@@ -1,6 +1,16 @@
-use std::{io::{self, BufRead}, sync::{Arc, Mutex, atomic::Ordering}, thread, time::Duration};
+use std::{
+    io::{self, BufRead},
+    sync::{Arc, Mutex, atomic::Ordering},
+    thread,
+    time::Duration,
+};
 
-use crate::{board::{Board, Side}, movegen::magic_sliders::init_magics, moves::{Move, MoveList}, search::{SearchControl, SearchEnv, TT, search}};
+use crate::{
+    board::{Board, Side},
+    movegen::magic_sliders::init_magics,
+    moves::{Move, MoveList},
+    search::{SearchControl, SearchEnv, TT, search},
+};
 
 const ENGINE_NAME: &str = "Hexenzsene v0.2.0";
 const ENGINE_AUTHOR: &str = "Averie Harkins";
@@ -15,7 +25,7 @@ pub fn engine() {
     println!("Initializing...");
     // MAGICS_PTR is null by default. If we don't initialize it, we're gonna have a bad time!
     // We try to initialize this a LOT more in the actual search loops (Notably at the start of every iterative deepening step).
-    init_magics(); 
+    init_magics();
     let stdin = io::stdin();
     let mut engine = Engine::new();
 
@@ -79,7 +89,10 @@ impl Engine {
     fn print_info(&self) {
         println!("id name {}", ENGINE_NAME);
         println!("id author {}", ENGINE_AUTHOR);
-        println!("option name Hash type spin default {} min 1 max 1024", DEFAULT_HASH_MB);
+        println!(
+            "option name Hash type spin default {} min 1 max 1024",
+            DEFAULT_HASH_MB
+        );
         println!("uciok");
     }
 
@@ -114,11 +127,16 @@ impl Engine {
 
         let params = GoParameters::new(line);
         let max_depth = params.depth.unwrap_or(
-            if params.wtime.is_some() || params.btime.is_some() || params.movetime.is_some() || params.infinite || params.nodes.is_some() {
+            if params.wtime.is_some()
+                || params.btime.is_some()
+                || params.movetime.is_some()
+                || params.infinite
+                || params.nodes.is_some()
+            {
                 200
             } else {
                 DEFAULT_DEPTH
-            }
+            },
         );
 
         let search_time = calculate_search_time(&self.board, &params);
@@ -201,7 +219,7 @@ struct GoParameters {
     btime: Option<u64>,
     winc: Option<u64>,
     binc: Option<u64>,
-    infinite: bool
+    infinite: bool,
 }
 
 impl GoParameters {
@@ -213,43 +231,56 @@ impl GoParameters {
         while let Some(part) = parts.next() {
             match part {
                 "depth" => {
-                    if let Some(val) = parts.next() && let Ok(parsed) = val.parse::<i64>() {
+                    if let Some(val) = parts.next()
+                        && let Ok(parsed) = val.parse::<i64>()
+                    {
                         params.depth = Some(parsed);
                     }
                 }
                 "movetime" => {
-                    if let Some(val) = parts.next() && let Ok(parsed) = val.parse::<u64>() {
+                    if let Some(val) = parts.next()
+                        && let Ok(parsed) = val.parse::<u64>()
+                    {
                         params.movetime = Some(parsed);
                     }
                 }
                 "nodes" => {
-                    if let Some(val) = parts.next() && let Ok(parsed) = val.parse::<u64>() {
+                    if let Some(val) = parts.next()
+                        && let Ok(parsed) = val.parse::<u64>()
+                    {
                         params.nodes = Some(parsed);
                     }
                 }
                 "wtime" => {
-                    if let Some(val) = parts.next() && let Ok(parsed) = val.parse::<u64>() {
+                    if let Some(val) = parts.next()
+                        && let Ok(parsed) = val.parse::<u64>()
+                    {
                         params.wtime = Some(parsed);
                     }
                 }
                 "btime" => {
-                    if let Some(val) = parts.next() && let Ok(parsed) = val.parse::<u64>() {
+                    if let Some(val) = parts.next()
+                        && let Ok(parsed) = val.parse::<u64>()
+                    {
                         params.btime = Some(parsed);
                     }
                 }
                 "winc" => {
-                    if let Some(val) = parts.next() && let Ok(parsed) = val.parse::<u64>() {
+                    if let Some(val) = parts.next()
+                        && let Ok(parsed) = val.parse::<u64>()
+                    {
                         params.winc = Some(parsed);
                     }
                 }
                 "binc" => {
-                    if let Some(val) = parts.next() && let Ok(parsed) = val.parse::<u64>() {
+                    if let Some(val) = parts.next()
+                        && let Ok(parsed) = val.parse::<u64>()
+                    {
                         params.binc = Some(parsed);
                     }
                 }
                 "infinite" => params.infinite = true,
                 _ => {}
-
             }
         }
 
@@ -273,12 +304,13 @@ fn calculate_search_time(board: &Board, params: &GoParameters) -> Option<u64> {
     let inc = match board.game_state.active_side {
         Side::White => params.winc,
         Side::Black => params.binc,
-    }.unwrap_or(0);
+    }
+    .unwrap_or(0);
 
-    if let Some(t) = time_remaining{
+    if let Some(t) = time_remaining {
         match t > 200000 {
             true => return Some(10000),
-            false => return Some(t / 20 + inc / 2)
+            false => return Some(t / 20 + inc / 2),
         }
     }
 
@@ -304,14 +336,15 @@ fn parse_uci_position(curr_board: Board, line: &str) -> (Board, Vec<u64>) {
 
     for m in parts {
         if m == "moves" {
-            continue
+            continue;
         }
 
         if let Some(mv) = Move::from_uci(&board, m)
-            && let Some(next_board) = board.make(mv) {
-                board = next_board;
-                hash_history.push(board.game_state.curr_zobrist_key);
-            }
+            && let Some(next_board) = board.make(mv)
+        {
+            board = next_board;
+            hash_history.push(board.game_state.curr_zobrist_key);
+        }
     }
     (board, hash_history)
 }
@@ -319,7 +352,9 @@ fn parse_uci_position(curr_board: Board, line: &str) -> (Board, Vec<u64>) {
 fn parse_setoption(line: &str) -> Option<(String, String)> {
     let parts: Vec<&str> = line.split_whitespace().collect();
     let name_idx = parts.iter().position(|&p| p.eq_ignore_ascii_case("name"))?;
-    let value_idx = parts.iter().position(|&p| p.eq_ignore_ascii_case("value"))?;
+    let value_idx = parts
+        .iter()
+        .position(|&p| p.eq_ignore_ascii_case("value"))?;
 
     if name_idx < value_idx && name_idx + 1 < parts.len() {
         let name = parts[name_idx + 1..value_idx].join(" ");
@@ -338,8 +373,13 @@ mod tests {
         crate::movegen::magic_sliders::init_magics();
         let startpos_board = Board::new_from_fen(STARTPOS_FEN);
         // Scotch my beloved <3
-        let (board, _) = parse_uci_position(startpos_board, "position startpos moves e2e4 e7e5 g1f3 b8c6 d2d4");
-        let fen_board = Board::new_from_fen("r1bqkbnr/pppp1ppp/2n5/4p3/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq d3 0 3");
+        let (board, _) = parse_uci_position(
+            startpos_board,
+            "position startpos moves e2e4 e7e5 g1f3 b8c6 d2d4",
+        );
+        let fen_board = Board::new_from_fen(
+            "r1bqkbnr/pppp1ppp/2n5/4p3/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq d3 0 3",
+        );
 
         assert_eq!(board, fen_board)
     }

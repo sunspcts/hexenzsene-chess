@@ -1,13 +1,15 @@
 use super::*;
 
-use crate::{board::Board};
+use crate::board::Board;
 
 pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut SearchEnv) -> i64 {
-    let ply = context.ply().min(MAX_PLY - 1); 
+    let ply = context.ply().min(MAX_PLY - 1);
     env.pv_length[ply] = 0;
     env.pv_table[ply][0] = Move::new_from_raw(0);
 
-    if env.step_node_and_check() { return 0; } // Have we hit a limit, or has the engine stopped the search?
+    if env.step_node_and_check() {
+        return 0;
+    } // Have we hit a limit, or has the engine stopped the search?
 
     // 50 move rule and repetition detection.
     if env.is_draw(board, ply) {
@@ -15,11 +17,11 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
     }
 
     // Check extensions.
-    let in_check = unsafe { board.is_in_check() }; 
+    let in_check = unsafe { board.is_in_check() };
     let depth = context.depth + in_check as i64;
     context.lmr_allowed = depth >= 3 && !in_check;
 
-    // We've reached the depth limit of this iteration. 
+    // We've reached the depth limit of this iteration.
     if depth <= 0 {
         return quiescense(board, context, env);
     }
@@ -27,8 +29,11 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
     let tt_entry = env.tt.get(board.game_state.curr_zobrist_key); // Probe the TT for this position.
     let tt_move = tt_entry.and_then(|e| e.best_move());
 
-    if ply > 0 { // Does the TT move cause a cutoff?
-        if let Some(score) = tt_entry.and_then(|e| e.cutoff(context.alpha, context.beta, depth, ply as i64)) {
+    if ply > 0 {
+        // Does the TT move cause a cutoff?
+        if let Some(score) =
+            tt_entry.and_then(|e| e.cutoff(context.alpha, context.beta, depth, ply as i64))
+        {
             return score;
         }
     }
@@ -56,22 +61,19 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
         let candidate_move = env.move_lists[ply].pick_best(i);
         if let Some(next_board) = board.make(candidate_move) {
             let is_quiet = !candidate_move.is_capture();
-            let is_killer = is_quiet && (candidate_move.data() == env.killers[ply][0] || candidate_move.data() == env.killers[ply][1]);
+            let is_killer = is_quiet
+                && (candidate_move.data() == env.killers[ply][0]
+                    || candidate_move.data() == env.killers[ply][1]);
 
-            if is_quiet && quiet_count < 64 { // We're gonna give this a malus if another quiet move causes a beta cutoff.
+            if is_quiet && quiet_count < 64 {
+                // We're gonna give this a malus if another quiet move causes a beta cutoff.
                 quiet_moves_tried[quiet_count] = candidate_move;
                 quiet_count += 1;
             }
 
             env.hash_history.push(board.game_state.curr_zobrist_key);
-            let score = context.search_move(
-                &next_board,
-                depth - 1,
-                move_count,
-                is_quiet,
-                is_killer,
-                env,
-            );
+            let score =
+                context.search_move(&next_board, depth - 1, move_count, is_quiet, is_killer, env);
             env.hash_history.pop();
 
             move_count += 1;
@@ -85,14 +87,17 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
                 best_move = Some(candidate_move);
             }
 
-            if score > context.alpha { // New best move, raise alpha!
+            if score > context.alpha {
+                // New best move, raise alpha!
                 context.alpha = score;
 
                 env.update_pv(ply, candidate_move);
             }
 
-            if score >= context.beta { // Cutoff! we don't need to look any further down this branch.
-                if is_quiet { // We should order this move higher now! 
+            if score >= context.beta {
+                // Cutoff! we don't need to look any further down this branch.
+                if is_quiet {
+                    // We should order this move higher now!
                     if candidate_move.data() != env.killers[ply][0] {
                         env.killers[ply][1] = env.killers[ply][0];
                         env.killers[ply][0] = candidate_move.data();
@@ -101,7 +106,7 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
                     history_gravity::update_history_cutoff(
                         &mut env.history,
                         side,
-                        candidate_move, // Move to incentivise
+                        candidate_move,                        // Move to incentivise
                         &quiet_moves_tried[..quiet_count - 1], // Moves to penalize
                         depth,
                     );
@@ -111,7 +116,8 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
         }
     }
 
-    if move_count == 0 { // We never found a legal move.
+    if move_count == 0 {
+        // We never found a legal move.
         if in_check {
             return -MATE_EVAL + ply as i64;
         } else {
@@ -119,7 +125,8 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
         }
     }
 
-    if !env.stopped { // Best move of the node. We should store it in the TT.
+    if !env.stopped {
+        // Best move of the node. We should store it in the TT.
         env.tt.store(TTEntry {
             zobrist_key: board.game_state.curr_zobrist_key,
             score: score_to_tt(max_score, ply as i64),

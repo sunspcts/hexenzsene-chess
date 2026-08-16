@@ -1,5 +1,5 @@
-mod score;
 mod pick;
+mod score;
 
 use super::Move;
 
@@ -31,8 +31,8 @@ impl MoveList {
         self.len = 0;
     }
 
-    // based on the implementation for Vec, doesn't drop elements but simply moves them behind the pointer. 
-    // Since the pointer can't be manually incremented without overwriting whatever it sits at, the moved values are unreachable! 
+    // based on the implementation for Vec, doesn't drop elements but simply moves them behind the pointer.
+    // Since the pointer can't be manually incremented without overwriting whatever it sits at, the moved values are unreachable!
     // https://doc.rust-lang.org/src/alloc/vec/mod.rs.html#2478-2480
 
     // I don't actually use this anymore, but it's good to keep around.
@@ -46,8 +46,10 @@ impl MoveList {
         let mut write = 0;
 
         for read in 0..original_len {
-            if f(&self.moves[read]) { // bool function we passed in  
-                if read != write { //if it's in the right spot, we dont even need to swap them!
+            if f(&self.moves[read]) {
+                // bool function we passed in
+                if read != write {
+                    //if it's in the right spot, we dont even need to swap them!
                     self.swap(read, write);
                 }
                 write += 1;

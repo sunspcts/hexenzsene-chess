@@ -1,4 +1,4 @@
-use crate::{bitboard::Bitboard};
+use crate::bitboard::Bitboard;
 
 //Mostly constant lookup table initializations.
 
@@ -8,25 +8,25 @@ pub const PAWN_ATTACKS: [[Bitboard; 64]; 2] = init_pawn_attacks();
 pub const RAYS: [[Bitboard; 64]; 8] = init_ray_lookup();
 
 const DIR_OFFSETS: [(i8, i8); 8] = [
-    (1, 0), // N
-    (-1, 0), // S
-    (0, 1), // E
-    (0, -1), // W
-    (1, 1), // NE
-    (1, -1), // NW
-    (-1, 1), // SE
+    (1, 0),   // N
+    (-1, 0),  // S
+    (0, 1),   // E
+    (0, -1),  // W
+    (1, 1),   // NE
+    (1, -1),  // NW
+    (-1, 1),  // SE
     (-1, -1), // SW
 ];
 
 const KNIGHT_OFFSETS: [(i8, i8); 8] = [
-    (2, 1), // N + NE
-    (1, 2), // E + NE
-    (-1, 2), // E + SE
-    (-2, 1), // S + SE
+    (2, 1),   // N + NE
+    (1, 2),   // E + NE
+    (-1, 2),  // E + SE
+    (-2, 1),  // S + SE
     (-2, -1), // S + SW
     (-1, -2), // W + SW
-    (1, -2), // W + NW
-    (2, -1), // N + NW
+    (1, -2),  // W + NW
+    (2, -1),  // N + NW
 ];
 
 const A_FILE: u64 = 0x0101010101010101;
@@ -40,8 +40,8 @@ const fn init_leaper_attacks(offsets: &[(i8, i8)]) -> [Bitboard; 64] {
 
     while sq < 64 {
         let mut bb = 0; // We generate one bitboard and mutate it in place.
-        
-        let rank = (sq / 8) as i8;  // Cheaper ways to do these both, but it's compile time evaluated. Who cares?
+
+        let rank = (sq / 8) as i8; // Cheaper ways to do these both, but it's compile time evaluated. Who cares?
         let file = (sq % 8) as i8;
 
         let mut i = 0;
@@ -49,7 +49,7 @@ const fn init_leaper_attacks(offsets: &[(i8, i8)]) -> [Bitboard; 64] {
             let (dr, df) = offsets[i];
             let (r, f) = (rank + dr, file + df); // Rank and file with offsets applied.
 
-            // Check we're not trying to place a piece off the board. 
+            // Check we're not trying to place a piece off the board.
             // If we tried to place a piece on, for example "I6", it would wrap around and place on A7.
             if r >= 0 && f >= 0 && r < 8 && f < 8 {
                 bb |= 1u64 << (r * 8 + f); // 1 << x is the bitboard for a piece on square x. (zero indexed square numbering)
@@ -58,7 +58,7 @@ const fn init_leaper_attacks(offsets: &[(i8, i8)]) -> [Bitboard; 64] {
             i += 1;
         }
 
-        attacks[sq] = Bitboard::new(bb); 
+        attacks[sq] = Bitboard::new(bb);
         sq += 1;
     }
 
@@ -66,7 +66,7 @@ const fn init_leaper_attacks(offsets: &[(i8, i8)]) -> [Bitboard; 64] {
 }
 
 const fn init_pawn_attacks() -> [[Bitboard; 64]; 2] {
-    // Pawns need two separate lookup tables for white and black. 
+    // Pawns need two separate lookup tables for white and black.
     // These tables aren't actually used in the pawn movegen proper, but they're useful to have.
     let mut attacks = [[Bitboard::zero(); 64]; 2];
     let mut sq = 0;
@@ -119,4 +119,3 @@ const fn init_ray_lookup() -> [[Bitboard; 64]; 8] {
     }
     rays
 }
-

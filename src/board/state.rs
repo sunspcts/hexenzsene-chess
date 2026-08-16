@@ -2,7 +2,7 @@ use super::Side;
 
 // STATE STRUCT
 
-#[derive (Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct GameState {
     pub active_side: Side,
     pub castling: u8,

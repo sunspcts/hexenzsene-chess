@@ -1,6 +1,8 @@
 // Primarily used for magic bitboard initialization, maybe more in the future! But this is fine for now.
 
-pub struct Xorshift { state: u64 }
+pub struct Xorshift {
+    state: u64,
+}
 
 impl Default for Xorshift {
     fn default() -> Self {

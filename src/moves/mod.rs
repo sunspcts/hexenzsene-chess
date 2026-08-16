@@ -2,42 +2,44 @@ use crate::{board::*, piece::Piece};
 #[cfg(test)]
 mod tests;
 
+pub mod format;
 mod make;
 mod movelist;
-pub mod format;
 
 pub use movelist::MoveList;
 
 // flags from https://www.chessprogramming.org/Encoding_Moves.
 #[allow(dead_code)]
 pub mod move_flags {
-    pub const QUIET: u16               = 0b0000;
-    pub const DOUBLE_PAWN_PUSH: u16    = 0b0001;
-    pub const KING_CASTLE: u16         = 0b0010;
-    pub const QUEEN_CASTLE: u16        = 0b0011;
+    pub const QUIET: u16 = 0b0000;
+    pub const DOUBLE_PAWN_PUSH: u16 = 0b0001;
+    pub const KING_CASTLE: u16 = 0b0010;
+    pub const QUEEN_CASTLE: u16 = 0b0011;
 
-    pub const CAPTURE: u16             = 0b0100;
-    pub const EP_CAPTURE: u16          = 0b0101;
+    pub const CAPTURE: u16 = 0b0100;
+    pub const EP_CAPTURE: u16 = 0b0101;
 
-    pub const KNIGHT_PROMO: u16        = 0b1000;
-    pub const BISHOP_PROMO: u16        = 0b1001;
-    pub const ROOK_PROMO: u16          = 0b1010;
-    pub const QUEEN_PROMO: u16         = 0b1011;
+    pub const KNIGHT_PROMO: u16 = 0b1000;
+    pub const BISHOP_PROMO: u16 = 0b1001;
+    pub const ROOK_PROMO: u16 = 0b1010;
+    pub const QUEEN_PROMO: u16 = 0b1011;
 
     pub const KNIGHT_PROMO_CAPTURE: u16 = 0b1100;
     pub const BISHOP_PROMO_CAPTURE: u16 = 0b1101;
-    pub const ROOK_PROMO_CAPTURE: u16   = 0b1110;
-    pub const QUEEN_PROMO_CAPTURE: u16  = 0b1111;
+    pub const ROOK_PROMO_CAPTURE: u16 = 0b1110;
+    pub const QUEEN_PROMO_CAPTURE: u16 = 0b1111;
 }
 
 // CONVENTION
-// (indexed from lsb) 
+// (indexed from lsb)
 // Bits 0-5: from_sq
-// Bits 6-11: to_sq 
+// Bits 6-11: to_sq
 // Bits 12-15: move flags (used in make)
 
 #[derive(Clone, Copy, Debug)]
-pub struct Move {data: u16}
+pub struct Move {
+    data: u16,
+}
 
 impl PartialEq for Move {
     fn eq(&self, other: &Self) -> bool {
@@ -51,9 +53,7 @@ impl Move {
     // Packs arguments
     pub fn new(_board: &Board, from: u16, to: u16, flags: u16, _piece: Piece) -> Self {
         Move {
-            data: {
-                (from) | (to << 6) | (flags << 12)
-            },
+            data: { (from) | (to << 6) | (flags << 12) },
         }
     }
 
@@ -64,9 +64,7 @@ impl Move {
 
     // Mostly used for initializing non-moves in the movelist, and for transposition tables.
     pub fn new_from_raw(data: u16) -> Self {
-        Move {
-            data,
-        }
+        Move { data }
     }
 
     // Helpers for unpacking data field

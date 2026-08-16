@@ -1,5 +1,5 @@
+use super::attacks::{IS_POS_DIR, RAYS};
 use crate::bitboard::Bitboard;
-use super::attacks::{RAYS, IS_POS_DIR};
 
 pub fn get_ray_attacks(sq: usize, dir: usize, occupancy: Bitboard) -> Bitboard {
     let ray = RAYS[dir][sq];

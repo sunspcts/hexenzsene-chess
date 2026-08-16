@@ -4,12 +4,7 @@ use super::attacks::*;
 use crate::{moves::MoveList, piece::Piece};
 
 impl Board {
-    pub fn generate_leaper_moves(
-        &self,
-        from_sq: u16,
-        moves: &mut MoveList,
-        piece: Piece,
-    ) {
+    pub fn generate_leaper_moves(&self, from_sq: u16, moves: &mut MoveList, piece: Piece) {
         let side = self.game_state.active_side as usize;
         let friendly_pieces = self.side_bb[side];
         //XORing here saves us an (albeit unlikely to be mispredicted) branch.
@@ -38,12 +33,7 @@ impl Board {
     }
 
     // Used primarily for quiescense search, only generates captures.
-    pub fn generate_leaper_captures(
-        &self,
-        from_sq: u16,
-        moves: &mut MoveList,
-        piece: Piece,
-    ) {
+    pub fn generate_leaper_captures(&self, from_sq: u16, moves: &mut MoveList, piece: Piece) {
         let side = self.game_state.active_side as usize;
         let enemy_pieces = self.side_bb[side ^ 1];
 

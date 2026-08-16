@@ -1,18 +1,25 @@
 // IMPORTS
 
 mod init;
-mod state;
 mod null_moves;
+mod state;
 
 #[cfg(test)]
 mod tests;
 
-use crate::{bitboard::Bitboard, movegen::{attacks::{KING_ATTACKS, KNIGHT_ATTACKS, PAWN_ATTACKS}, magic_sliders}, piece::Piece};
+use crate::{
+    bitboard::Bitboard,
+    movegen::{
+        attacks::{KING_ATTACKS, KNIGHT_ATTACKS, PAWN_ATTACKS},
+        magic_sliders,
+    },
+    piece::Piece,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Side {
     White = 0,
-    Black = 1
+    Black = 1,
 }
 
 impl Side {
@@ -24,7 +31,6 @@ impl Side {
     }
 }
 
-
 // BOARD STRUCT
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -32,7 +38,7 @@ pub struct Board {
     pub piece_bb: [[Bitboard; 6]; 2],
     pub side_bb: [Bitboard; 2],
     pub game_state: state::GameState,
-    mailbox: [Piece; 64]
+    mailbox: [Piece; 64],
 }
 
 // VERY useful to be able to just index the board like this.
@@ -64,7 +70,9 @@ impl Board {
         // Saves extremely costly iteration over every piece on the board .
 
         let enemy_pawns = attacker_pieces[Piece::Pawn as usize];
-        if (unsafe { *PAWN_ATTACKS.get_unchecked(defender).get_unchecked(sq) } & enemy_pawns) != Bitboard::zero() {
+        if (unsafe { *PAWN_ATTACKS.get_unchecked(defender).get_unchecked(sq) } & enemy_pawns)
+            != Bitboard::zero()
+        {
             return true;
         }
 
@@ -77,14 +85,20 @@ impl Board {
         let enemy_queens = attacker_pieces[Piece::Queen as usize];
         let diagonal_attackers = attacker_pieces[Piece::Bishop as usize] | enemy_queens;
         if diagonal_attackers != Bitboard::zero() {
-            if (unsafe { magic_sliders::get_bishop_attacks(occupancy, square) } & diagonal_attackers) != Bitboard::zero() {
+            if (unsafe { magic_sliders::get_bishop_attacks(occupancy, square) }
+                & diagonal_attackers)
+                != Bitboard::zero()
+            {
                 return true;
             }
         }
 
         let orthogonal_attackers = attacker_pieces[Piece::Rook as usize] | enemy_queens;
         if orthogonal_attackers != Bitboard::zero() {
-            if (unsafe { magic_sliders::get_rook_attacks(occupancy, square) } & orthogonal_attackers) != Bitboard::zero() {
+            if (unsafe { magic_sliders::get_rook_attacks(occupancy, square) }
+                & orthogonal_attackers)
+                != Bitboard::zero()
+            {
                 return true;
             }
         }
@@ -108,7 +122,7 @@ impl Board {
     pub fn side_to_move_multiplier(&self) -> i64 {
         match self.game_state.active_side {
             Side::White => 1,
-            Side::Black => -1
+            Side::Black => -1,
         }
     }
 
@@ -124,10 +138,13 @@ impl Board {
         let friendly_pieces = self.side_bb[side as usize];
         let mut pinned_pieces = Bitboard::zero();
 
-        let enemy_rooks_and_queens = self.piece_bb[enemy as usize][Piece::Rook as usize] | self.piece_bb[enemy as usize][Piece::Queen as usize];
+        let enemy_rooks_and_queens = self.piece_bb[enemy as usize][Piece::Rook as usize]
+            | self.piece_bb[enemy as usize][Piece::Queen as usize];
 
         if enemy_rooks_and_queens != Bitboard::zero() {
-            let mut pinners = unsafe { magic_sliders::get_rook_xray_attacks(occupancy, friendly_pieces, king_sq) } & enemy_rooks_and_queens;
+            let mut pinners = unsafe {
+                magic_sliders::get_rook_xray_attacks(occupancy, friendly_pieces, king_sq)
+            } & enemy_rooks_and_queens;
             while pinners != Bitboard::zero() {
                 let pinner_sq = pinners.trailing_zeros() as u16;
                 let line_between = unsafe {
@@ -139,10 +156,13 @@ impl Board {
             }
         }
 
-        let enemy_bishops_and_queens = self.piece_bb[enemy as usize][Piece::Bishop as usize] | self.piece_bb[enemy as usize][Piece::Queen as usize];
+        let enemy_bishops_and_queens = self.piece_bb[enemy as usize][Piece::Bishop as usize]
+            | self.piece_bb[enemy as usize][Piece::Queen as usize];
 
         if enemy_bishops_and_queens != Bitboard::zero() {
-            let mut pinners = unsafe { magic_sliders::get_bishop_xray_attacks(occupancy, friendly_pieces, king_sq) } & enemy_bishops_and_queens;
+            let mut pinners = unsafe {
+                magic_sliders::get_bishop_xray_attacks(occupancy, friendly_pieces, king_sq)
+            } & enemy_bishops_and_queens;
             while pinners != Bitboard::zero() {
                 let pinner_sq = pinners.trailing_zeros() as u16;
                 let line_between = unsafe {

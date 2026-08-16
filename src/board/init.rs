@@ -1,8 +1,8 @@
 use crate::bitboard::Bitboard;
 use crate::piece::Piece;
 
-use super::Side;
 use super::Board;
+use super::Side;
 use super::state::GameState;
 
 const PIECE_CHARS: &str = "kqrbnpKQRBNP";
@@ -11,7 +11,7 @@ const PIECE_CHARS: &str = "kqrbnpKQRBNP";
 impl Board {
     // This function doesn't like being given a malformed fen. I'll add proper error handling before release, I swear.
     // HOWEVER. Since the engine is mostly to be used with GUIs, it doesn't really have many user friendly ways to load a FEN.
-    // Any UCI-conformant GUI will be fine. 
+    // Any UCI-conformant GUI will be fine.
 
     pub fn new_from_fen(fen: &str) -> Self {
         let fen_parts: Vec<&str> = fen.split_ascii_whitespace().collect();
@@ -23,14 +23,14 @@ impl Board {
             en_passant_square: init_ep_square(fen_parts[3]),
             half_moves: init_halfmoves(fen_parts[4]),
             move_counter: init_move_counter(fen_parts[5]),
-            curr_zobrist_key: 0
+            curr_zobrist_key: 0,
         };
 
         let mut board = Board {
             piece_bb,
             side_bb,
             game_state,
-            mailbox
+            mailbox,
         };
 
         board.recompute_zobrist_hash();
@@ -45,30 +45,70 @@ fn init_bb_mb_fen(fen_part_1: &str) -> ([[Bitboard; 6]; 2], [Bitboard; 2], [Piec
     let mut side_bb = [Bitboard::default(); 2];
     let mut mailbox: [Piece; 64] = [Piece::None; 64];
 
-    let mut rank = 7; let mut file = 0;
+    let mut rank = 7;
+    let mut file = 0;
     for char in fen_part_1.chars() {
         let sq = (rank * 8) + file;
         //This could've been a lookup table. But this is more readable, and this is a very rarely used method, so it's fine.
         match char {
-            'p' => {piece_bb[1][0] |= Bitboard::one() << sq; mailbox[sq] = Piece::Pawn},
-            'P' => {piece_bb[0][0] |= Bitboard::one() << sq; mailbox[sq] = Piece::Pawn},
-            'n' => {piece_bb[1][1] |= Bitboard::one() << sq; mailbox[sq] = Piece::Knight},
-            'N' => {piece_bb[0][1] |= Bitboard::one() << sq; mailbox[sq] = Piece::Knight},
-            'b' => {piece_bb[1][2] |= Bitboard::one() << sq; mailbox[sq] = Piece::Bishop},
-            'B' => {piece_bb[0][2] |= Bitboard::one() << sq; mailbox[sq] = Piece::Bishop},
-            'r' => {piece_bb[1][3] |= Bitboard::one() << sq; mailbox[sq] = Piece::Rook},
-            'R' => {piece_bb[0][3] |= Bitboard::one() << sq; mailbox[sq] = Piece::Rook},
-            'q' => {piece_bb[1][4] |= Bitboard::one() << sq; mailbox[sq] = Piece::Queen},
-            'Q' => {piece_bb[0][4] |= Bitboard::one() << sq; mailbox[sq] = Piece::Queen},
-            'k' => {piece_bb[1][5] |= Bitboard::one() << sq; mailbox[sq] = Piece::King},
-            'K' => {piece_bb[0][5] |= Bitboard::one() << sq; mailbox[sq] = Piece::King},
+            'p' => {
+                piece_bb[1][0] |= Bitboard::one() << sq;
+                mailbox[sq] = Piece::Pawn
+            }
+            'P' => {
+                piece_bb[0][0] |= Bitboard::one() << sq;
+                mailbox[sq] = Piece::Pawn
+            }
+            'n' => {
+                piece_bb[1][1] |= Bitboard::one() << sq;
+                mailbox[sq] = Piece::Knight
+            }
+            'N' => {
+                piece_bb[0][1] |= Bitboard::one() << sq;
+                mailbox[sq] = Piece::Knight
+            }
+            'b' => {
+                piece_bb[1][2] |= Bitboard::one() << sq;
+                mailbox[sq] = Piece::Bishop
+            }
+            'B' => {
+                piece_bb[0][2] |= Bitboard::one() << sq;
+                mailbox[sq] = Piece::Bishop
+            }
+            'r' => {
+                piece_bb[1][3] |= Bitboard::one() << sq;
+                mailbox[sq] = Piece::Rook
+            }
+            'R' => {
+                piece_bb[0][3] |= Bitboard::one() << sq;
+                mailbox[sq] = Piece::Rook
+            }
+            'q' => {
+                piece_bb[1][4] |= Bitboard::one() << sq;
+                mailbox[sq] = Piece::Queen
+            }
+            'Q' => {
+                piece_bb[0][4] |= Bitboard::one() << sq;
+                mailbox[sq] = Piece::Queen
+            }
+            'k' => {
+                piece_bb[1][5] |= Bitboard::one() << sq;
+                mailbox[sq] = Piece::King
+            }
+            'K' => {
+                piece_bb[0][5] |= Bitboard::one() << sq;
+                mailbox[sq] = Piece::King
+            }
             '1'..='8' => {
                 if let Some(x) = char.to_digit(10) {
                     file += x as usize;
                 }
             }
-            '/' => { rank -= 1; file = 0 }
-            _ => panic!("unsupported character {} in FEN string!", char) // fix this, please dont just fucking panic
+            '/' => {
+                rank -= 1;
+                file = 0
+            }
+            _ => panic!("unsupported character {} in FEN string!", char), // fix this, please dont just fucking panic
         }
 
         if PIECE_CHARS.contains(char) {
@@ -91,7 +131,10 @@ fn init_active_side(fen_part_2: &str) -> Side {
     match fen_part_2 {
         "w" => Side::White,
         "b" => Side::Black,
-        _ => panic!("unsupported field {} in side_to_play component of FEN string!", fen_part_2)
+        _ => panic!(
+            "unsupported field {} in side_to_play component of FEN string!",
+            fen_part_2
+        ),
     }
 }
 
@@ -112,7 +155,8 @@ fn init_castling_rights(fen_part_3: &str) -> u8 {
 fn init_ep_square(fen_part_4: &str) -> Option<u8> {
     if fen_part_4 == "-" {
         None
-    } else { // if the square is invalid, or if it only includes file, we'll get corrupted data. conforms to uci specification though, so it's fine.
+    } else {
+        // if the square is invalid, or if it only includes file, we'll get corrupted data. conforms to uci specification though, so it's fine.
         let mut chars = fen_part_4.chars();
         let file_char = chars.next().unwrap();
         let file = file_char as u8 - b'a';

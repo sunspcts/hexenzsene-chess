@@ -1,7 +1,7 @@
 use crate::piece::Piece;
 
 // The table is 7x7 rather than 6x6 because score_qsearch_moves checks it unconditionally.
-const MVV_LVA_TAB: [[i16; 7]; 7] = init_mvv_lva_table(); 
+const MVV_LVA_TAB: [[i16; 7]; 7] = init_mvv_lva_table();
 
 const fn init_mvv_lva_table() -> [[i16; 7]; 7] {
     let mut tab = [[0; 7]; 7];

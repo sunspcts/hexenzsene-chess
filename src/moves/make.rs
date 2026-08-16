@@ -1,6 +1,10 @@
 use super::*;
 
-use crate::{bitboard::Bitboard, hashing::{ZOBRIST_RANDOMS, get_piece_zobrist_index}, movegen::magic_sliders};
+use crate::{
+    bitboard::Bitboard,
+    hashing::{ZOBRIST_RANDOMS, get_piece_zobrist_index},
+    movegen::magic_sliders,
+};
 
 impl Board {
     pub fn make(&self, mv: Move) -> Option<Board> {
@@ -25,7 +29,11 @@ impl Board {
             };
             // We check if the to square is attacked at the end of the function anyway.
             // Checking here might give a *tiny* speedup from the early return? Will test at some point but there are more pressing matters ^_^
-            if unsafe { self.is_attacked(from, enemy) || self.is_attacked(transit_sq, enemy) || self.is_attacked(to, enemy) } {
+            if unsafe {
+                self.is_attacked(from, enemy)
+                    || self.is_attacked(transit_sq, enemy)
+                    || self.is_attacked(to, enemy)
+            } {
                 return None;
             }
         }
@@ -59,7 +67,7 @@ impl Board {
             let piece_to_place = if mv.is_promo() {
                 promo_flag_parser(flags)
             } else {
-                    Piece::Pawn
+                Piece::Pawn
             };
 
             board.place_piece(side, piece_to_place, to);
@@ -90,7 +98,7 @@ impl Board {
                 6 => board.move_piece(Piece::Rook, side, 7, 5),
                 58 => board.move_piece(Piece::Rook, side, 56, 59),
                 62 => board.move_piece(Piece::Rook, side, 63, 61),
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         }
 
@@ -103,7 +111,8 @@ impl Board {
         board.game_state.curr_zobrist_key ^= zobrist_delta;
 
         // Is the side to move's king attacked? If so, illegal move!
-        let king_square = (board.piece_bb[side as usize][Piece::King as usize]).trailing_zeros() as u16;
+        let king_square =
+            (board.piece_bb[side as usize][Piece::King as usize]).trailing_zeros() as u16;
         let is_legal = !unsafe { board.is_attacked(king_square, enemy) };
 
         if is_legal {
@@ -129,7 +138,6 @@ impl Board {
         //gotta update the hash.
         let zobrist_idx = get_piece_zobrist_index(piece, side, sq as usize);
         self.game_state.curr_zobrist_key ^= ZOBRIST_RANDOMS[zobrist_idx];
-
     }
 
     fn place_piece(&mut self, side: Side, piece: Piece, sq: u16) {
@@ -167,7 +175,8 @@ impl Board {
         if depth == 1 {
             let side = self.game_state.active_side;
             let enemy = side.flip();
-            let king_sq = (self.piece_bb[side as usize][Piece::King as usize]).trailing_zeros() as u16;
+            let king_sq =
+                (self.piece_bb[side as usize][Piece::King as usize]).trailing_zeros() as u16;
 
             if king_sq < 64 && !unsafe { self.is_attacked(king_sq, enemy) } {
                 let pinned_bb = self.pinned_bitboard(side);
@@ -216,6 +225,6 @@ fn promo_flag_parser(flag: u16) -> Piece {
         1 => Piece::Bishop,
         2 => Piece::Rook,
         3 => Piece::Queen,
-        _ => unreachable!()
+        _ => unreachable!(),
     }
 }

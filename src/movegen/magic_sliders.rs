@@ -1,6 +1,6 @@
+use super::legacy_sliders;
 use crate::bitboard::Bitboard;
 use crate::rng::Xorshift;
-use super::legacy_sliders;
 
 const OUTER_EDGE: Bitboard = Bitboard::new(0xFF818181818181FF);
 
@@ -25,10 +25,12 @@ impl MagicTable {
     /// entry_idx must be < 128
     #[inline(always)]
     pub unsafe fn get_attacks(&self, blockers: Bitboard, entry_idx: usize) -> Bitboard {
-        debug_assert!(entry_idx < 128, "Magic entry index out of bounds: {}", entry_idx);
-        let entry = unsafe { 
-            self.entries.get_unchecked(entry_idx) 
-        };
+        debug_assert!(
+            entry_idx < 128,
+            "Magic entry index out of bounds: {}",
+            entry_idx
+        );
+        let entry = unsafe { self.entries.get_unchecked(entry_idx) };
         let index = blockers.magic_index(entry.mask, entry.magic, entry.shift as usize);
         unsafe { *self.attacks.get_unchecked(entry.offset as usize + index) }
     }
@@ -65,7 +67,10 @@ pub fn init_magics() {
 #[inline(always)]
 pub unsafe fn get_rook_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
     unsafe {
-        debug_assert!(!MAGICS_PTR.is_null(), "Magics must be initialized before access");
+        debug_assert!(
+            !MAGICS_PTR.is_null(),
+            "Magics must be initialized before access"
+        );
         (*MAGICS_PTR).rook_attacks(occupancy, square)
     }
 }
@@ -75,7 +80,10 @@ pub unsafe fn get_rook_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
 #[inline(always)]
 pub unsafe fn get_bishop_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
     unsafe {
-        debug_assert!(!MAGICS_PTR.is_null(), "Magics must be initialized before access");
+        debug_assert!(
+            !MAGICS_PTR.is_null(),
+            "Magics must be initialized before access"
+        );
         (*MAGICS_PTR).bishop_attacks(occupancy, square)
     }
 }
@@ -83,7 +91,11 @@ pub unsafe fn get_bishop_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
 // UNSAFE
 // Returns ONLY X-Ray attacks on `square` passing through `blockers` to secondary target squares.
 #[inline(always)]
-pub unsafe fn get_rook_xray_attacks(occupancy: Bitboard, blockers: Bitboard, square: u16) -> Bitboard {
+pub unsafe fn get_rook_xray_attacks(
+    occupancy: Bitboard,
+    blockers: Bitboard,
+    square: u16,
+) -> Bitboard {
     let attacks = unsafe { get_rook_attacks(occupancy, square) };
     let filtered_blockers = blockers & attacks;
     let secondary_attacks = unsafe { get_rook_attacks(occupancy ^ filtered_blockers, square) };
@@ -93,7 +105,11 @@ pub unsafe fn get_rook_xray_attacks(occupancy: Bitboard, blockers: Bitboard, squ
 // UNSAFE
 // Returns ONLY X-Ray attacks on `square` passing through `blockers` to secondary target squares.
 #[inline(always)]
-pub unsafe fn get_bishop_xray_attacks(occupancy: Bitboard, blockers: Bitboard, square: u16) -> Bitboard {
+pub unsafe fn get_bishop_xray_attacks(
+    occupancy: Bitboard,
+    blockers: Bitboard,
+    square: u16,
+) -> Bitboard {
     let attacks = unsafe { get_bishop_attacks(occupancy, square) };
     let filtered_blockers = blockers & attacks;
     let secondary_attacks = unsafe { get_bishop_attacks(occupancy ^ filtered_blockers, square) };
@@ -125,7 +141,12 @@ fn generate_occupancies(mask: Bitboard) -> Vec<Bitboard> {
     occupancies
 }
 
-fn find_magic(sq: usize, mask: Bitboard, is_rook: bool, rng: &mut Xorshift) -> (MagicEntry, Vec<Bitboard>) {
+fn find_magic(
+    sq: usize,
+    mask: Bitboard,
+    is_rook: bool,
+    rng: &mut Xorshift,
+) -> (MagicEntry, Vec<Bitboard>) {
     let occupancies = generate_occupancies(mask);
     let occupancies_count = occupancies.len();
     let mut attacks = Vec::with_capacity(occupancies_count);
@@ -159,7 +180,11 @@ fn find_magic(sq: usize, mask: Bitboard, is_rook: bool, rng: &mut Xorshift) -> (
         used.fill(Bitboard::zero());
         seen.fill(false);
 
-        for (i, idx) in occupancies.iter().map(|occ| occ.magic_index(mask, magic, shift as usize)).enumerate() {
+        for (i, idx) in occupancies
+            .iter()
+            .map(|occ| occ.magic_index(mask, magic, shift as usize))
+            .enumerate()
+        {
             if !seen[idx] {
                 seen[idx] = true;
                 used[idx] = attacks[i];
@@ -170,7 +195,15 @@ fn find_magic(sq: usize, mask: Bitboard, is_rook: bool, rng: &mut Xorshift) -> (
         }
 
         if !fail {
-            return (MagicEntry { mask, magic, shift, offset: 0 }, used);
+            return (
+                MagicEntry {
+                    mask,
+                    magic,
+                    shift,
+                    offset: 0,
+                },
+                used,
+            );
         }
     }
 }
@@ -199,8 +232,5 @@ fn init_magic_table() -> MagicTable {
     }
 
     attacks.shrink_to_fit();
-    MagicTable {
-        entries,
-        attacks,
-    }
+    MagicTable { entries, attacks }
 }

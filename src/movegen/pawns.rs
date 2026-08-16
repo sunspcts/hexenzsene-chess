@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::{moves::MoveList, piece::Piece, bitboard::Bitboard};
+use crate::{bitboard::Bitboard, moves::MoveList, piece::Piece};
 
 const A_FILE_BB: Bitboard = Bitboard::new(0x0101010101010101);
 const H_FILE_BB: Bitboard = Bitboard::new(0x8080808080808080);
@@ -8,13 +8,15 @@ const RANK_3_BB: Bitboard = Bitboard::new(0x0000000000FF0000);
 const RANK_6_BB: Bitboard = Bitboard::new(0x0000FF0000000000);
 const PROMOTION_RANKS_BB: Bitboard = Bitboard::new(0xFF000000000000FF);
 
-const PROMOTION_FLAGS: [u16; 4] = [move_flags::KNIGHT_PROMO, move_flags::BISHOP_PROMO, move_flags::ROOK_PROMO, move_flags::QUEEN_PROMO];
+const PROMOTION_FLAGS: [u16; 4] = [
+    move_flags::KNIGHT_PROMO,
+    move_flags::BISHOP_PROMO,
+    move_flags::ROOK_PROMO,
+    move_flags::QUEEN_PROMO,
+];
 
 impl Board {
-    pub fn generate_pawn_moves(
-        &self,
-        moves: &mut MoveList,
-    ) {
+    pub fn generate_pawn_moves(&self, moves: &mut MoveList) {
         let side = self.game_state.active_side;
         let pawns = self.piece_bb[side as usize][Piece::Pawn as usize];
         let enemy_pieces = self.side_bb[(side as usize) ^ 1]; //this is disgusting but it's kinda a funny way!
@@ -54,7 +56,6 @@ impl Board {
         let ep_capture_right = captures_right & ep_square_bb;
         let captures_right = captures_right & !promotion_bb & !ep_square_bb;
 
-
         let (offset_push, offset_cap_left, offset_cap_right) = if side == Side::White {
             (8, 7, 9)
         } else {
@@ -62,21 +63,74 @@ impl Board {
         };
 
         //Lots of cases!
-        pawn_move_helper(self, single_pushes, offset_push, move_flags::QUIET, false, moves);
-        pawn_move_helper(self, double_pushes, offset_push * 2, move_flags::DOUBLE_PAWN_PUSH, false, moves);
-        pawn_move_helper(self, captures_left, offset_cap_left, move_flags::CAPTURE, false, moves);
-        pawn_move_helper(self, captures_right, offset_cap_right, move_flags::CAPTURE, false, moves);
+        pawn_move_helper(
+            self,
+            single_pushes,
+            offset_push,
+            move_flags::QUIET,
+            false,
+            moves,
+        );
+        pawn_move_helper(
+            self,
+            double_pushes,
+            offset_push * 2,
+            move_flags::DOUBLE_PAWN_PUSH,
+            false,
+            moves,
+        );
+        pawn_move_helper(
+            self,
+            captures_left,
+            offset_cap_left,
+            move_flags::CAPTURE,
+            false,
+            moves,
+        );
+        pawn_move_helper(
+            self,
+            captures_right,
+            offset_cap_right,
+            move_flags::CAPTURE,
+            false,
+            moves,
+        );
         pawn_move_helper(self, promo_pushes, offset_push, 0, true, moves);
-        pawn_move_helper(self, promo_caps_left, offset_cap_left, move_flags::CAPTURE, true, moves);
-        pawn_move_helper(self, promo_caps_right, offset_cap_right, move_flags::CAPTURE, true, moves);
-        pawn_move_helper(self, ep_capture_left, offset_cap_left, move_flags::EP_CAPTURE, false, moves);
-        pawn_move_helper(self, ep_capture_right, offset_cap_right, move_flags::EP_CAPTURE, false, moves);
+        pawn_move_helper(
+            self,
+            promo_caps_left,
+            offset_cap_left,
+            move_flags::CAPTURE,
+            true,
+            moves,
+        );
+        pawn_move_helper(
+            self,
+            promo_caps_right,
+            offset_cap_right,
+            move_flags::CAPTURE,
+            true,
+            moves,
+        );
+        pawn_move_helper(
+            self,
+            ep_capture_left,
+            offset_cap_left,
+            move_flags::EP_CAPTURE,
+            false,
+            moves,
+        );
+        pawn_move_helper(
+            self,
+            ep_capture_right,
+            offset_cap_right,
+            move_flags::EP_CAPTURE,
+            false,
+            moves,
+        );
     }
 
-    pub fn generate_pawn_caps_promos(
-        &self,
-        moves: &mut MoveList,
-    ) {
+    pub fn generate_pawn_caps_promos(&self, moves: &mut MoveList) {
         let side = self.game_state.active_side;
         let pawns = self.piece_bb[side as usize][Piece::Pawn as usize];
         let enemy_pieces = self.side_bb[(side as usize) ^ 1]; //this is disgusting but it's kinda a funny way!
@@ -85,7 +139,11 @@ impl Board {
         let ep_square = self.game_state.en_passant_square;
         let ep_square_bb = Bitboard::new(ep_square.map_or(0, |x| 1u64 << x));
 
-        let single_pushes = if side == Side::White { (pawns << 8) & empty } else { (pawns >> 8) & empty };
+        let single_pushes = if side == Side::White {
+            (pawns << 8) & empty
+        } else {
+            (pawns >> 8) & empty
+        };
         let promo_pushes = single_pushes & PROMOTION_RANKS_BB;
 
         let attackables = enemy_pieces | ep_square_bb;
@@ -110,7 +168,6 @@ impl Board {
         let ep_capture_right = captures_right & ep_square_bb;
         let captures_right = captures_right & !promotion_bb & !ep_square_bb;
 
-
         let (offset_push, offset_cap_left, offset_cap_right) = if side == Side::White {
             (8, 7, 9)
         } else {
@@ -118,18 +175,67 @@ impl Board {
         };
 
         //Lots of cases!
-        pawn_move_helper(self, captures_left, offset_cap_left, move_flags::CAPTURE, false, moves);
-        pawn_move_helper(self, captures_right, offset_cap_right, move_flags::CAPTURE, false, moves);
+        pawn_move_helper(
+            self,
+            captures_left,
+            offset_cap_left,
+            move_flags::CAPTURE,
+            false,
+            moves,
+        );
+        pawn_move_helper(
+            self,
+            captures_right,
+            offset_cap_right,
+            move_flags::CAPTURE,
+            false,
+            moves,
+        );
         pawn_move_helper(self, promo_pushes, offset_push, 0, true, moves);
-        pawn_move_helper(self, promo_caps_left, offset_cap_left, move_flags::CAPTURE, true, moves);
-        pawn_move_helper(self, promo_caps_right, offset_cap_right, move_flags::CAPTURE, true, moves);
-        pawn_move_helper(self, ep_capture_left, offset_cap_left, move_flags::EP_CAPTURE, false, moves);
-        pawn_move_helper(self, ep_capture_right, offset_cap_right, move_flags::EP_CAPTURE, false, moves);
+        pawn_move_helper(
+            self,
+            promo_caps_left,
+            offset_cap_left,
+            move_flags::CAPTURE,
+            true,
+            moves,
+        );
+        pawn_move_helper(
+            self,
+            promo_caps_right,
+            offset_cap_right,
+            move_flags::CAPTURE,
+            true,
+            moves,
+        );
+        pawn_move_helper(
+            self,
+            ep_capture_left,
+            offset_cap_left,
+            move_flags::EP_CAPTURE,
+            false,
+            moves,
+        );
+        pawn_move_helper(
+            self,
+            ep_capture_right,
+            offset_cap_right,
+            move_flags::EP_CAPTURE,
+            false,
+            moves,
+        );
     }
 }
 
 #[inline]
-fn pawn_move_helper(board: &Board, dest_bb: Bitboard, offset: i16, flag: u16, is_promotion: bool, moves: &mut MoveList) {
+fn pawn_move_helper(
+    board: &Board,
+    dest_bb: Bitboard,
+    offset: i16,
+    flag: u16,
+    is_promotion: bool,
+    moves: &mut MoveList,
+) {
     if is_promotion {
         for to_sq in dest_bb {
             let from_sq = (to_sq as i16 - offset) as u16;

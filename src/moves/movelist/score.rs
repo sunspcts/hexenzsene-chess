@@ -3,7 +3,8 @@ use crate::{board::Board, heuristics::calc_mvv_lva_heuristic, moves::move_flags}
 use super::*;
 
 impl MoveList {
-    pub fn score_moves( // Wrapper around score_move to score EVERY move in the list.
+    pub fn score_moves(
+        // Wrapper around score_move to score EVERY move in the list.
         &mut self,
         board: &Board,
         pv_move: Option<Move>,
@@ -17,11 +18,12 @@ impl MoveList {
         }
     }
 
-    pub fn score_qsearch_moves(&mut self, board: &Board) { // Quiescence search doesn't give a shit about PV-Moves, or TT-moves, and history/killers are unneeded.
+    pub fn score_qsearch_moves(&mut self, board: &Board) {
+        // Quiescence search doesn't give a shit about PV-Moves, or TT-moves, and history/killers are unneeded.
         let len = self.len as usize;
         for i in 0..len {
             let mv = self.moves[i];
-            self.scores[i] = calc_mvv_lva_heuristic(board[mv.from_sq()], mv.captured_piece(board)); 
+            self.scores[i] = calc_mvv_lva_heuristic(board[mv.from_sq()], mv.captured_piece(board));
         }
     }
 }
@@ -39,7 +41,7 @@ fn score_move(
         return i16::MAX; // PV Moves were the best found at a lower depth. Naturally we want to check them first.
     }
     if Some(mv) == tt_move {
-        return i16::MAX - 1; // TT Moves (mostly) caused cutoffs. 
+        return i16::MAX - 1; // TT Moves (mostly) caused cutoffs.
     }
     if mv.flags() & move_flags::QUEEN_PROMO == move_flags::QUEEN_PROMO {
         return 20000; // Queen promotion is always a great call! (Note: underpromotions should be ranked SOMEWHERE, definitely not last.)

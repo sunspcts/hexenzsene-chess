@@ -33,6 +33,8 @@ impl Move {
         init_magics(); // just in case :)
         let mut moves = super::MoveList::default();
         unsafe { board.generate_pseudolegal_moves(&mut moves) };
-        moves.into_iter().find(|&mv| mv.to_string() == uci_str && board.make(mv).is_some())
+        moves
+            .into_iter()
+            .find(|&mv| mv.to_string() == uci_str && board.make(mv).is_some())
     }
 }

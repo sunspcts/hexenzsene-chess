@@ -118,16 +118,26 @@ impl TT {
                 };
 
                 if existing_is_better {
-                    if existing.zobrist_key == entry.zobrist_key && existing.move_data == 0 && entry.move_data != 0 {
-                        unsafe { self.entries.get_unchecked_mut(index).move_data = entry.move_data; }
+                    if existing.zobrist_key == entry.zobrist_key
+                        && existing.move_data == 0
+                        && entry.move_data != 0
+                    {
+                        unsafe {
+                            self.entries.get_unchecked_mut(index).move_data = entry.move_data;
+                        }
                     }
                     return;
                 }
             }
-            if existing.zobrist_key == entry.zobrist_key && entry.move_data == 0 && existing.move_data != 0 {
+            if existing.zobrist_key == entry.zobrist_key
+                && entry.move_data == 0
+                && existing.move_data != 0
+            {
                 entry.move_data = existing.move_data;
             }
         }
-        unsafe { *self.entries.get_unchecked_mut(index) = entry; }
+        unsafe {
+            *self.entries.get_unchecked_mut(index) = entry;
+        }
     }
 }

@@ -1,4 +1,7 @@
-use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 
 use super::*;
 
@@ -6,8 +9,8 @@ use crate::moves::MoveList;
 
 // Holds global search variables. Initialized at the start of each search. (Gonna create a nice ::new() function at some point to avoid having all public fields.)
 pub struct SearchEnv<'a> {
-    pub nodes_visited: u64, // TOTAL nodes visited across the search.
-    pub node_limit: u64, // Node count at which the search returns early.
+    pub nodes_visited: u64,            // TOTAL nodes visited across the search.
+    pub node_limit: u64,               // Node count at which the search returns early.
     pub silent: bool, // When true, suppresses stdout info output (used for benchmarks).
     pub hash_history: Vec<u64>, // History of zobrist hashes, used for repetition detection.
     pub search_control: SearchControl, // Wrapper around an Arc<AtomicBool>, so the engine thread can stop the search thread. Polled occasionally.
@@ -22,7 +25,8 @@ pub struct SearchEnv<'a> {
 }
 
 impl<'a> SearchEnv<'a> {
-    pub fn format_pv(&self) -> String { // Used for UCI PV output.
+    pub fn format_pv(&self) -> String {
+        // Used for UCI PV output.
         let len = self.pv_length[0];
         let mut pv_str = String::new();
         for i in 0..len {
@@ -39,18 +43,25 @@ impl<'a> SearchEnv<'a> {
     }
 
     #[inline(always)]
-    pub fn is_repetition(&self, key: u64, half_moves: usize) -> bool { // Only looks back until the last move which reset the HMC.
-        self.hash_history.iter().rev().take(half_moves).any(|&k| k == key)
+    pub fn is_repetition(&self, key: u64, half_moves: usize) -> bool {
+        // Only looks back until the last move which reset the HMC.
+        self.hash_history
+            .iter()
+            .rev()
+            .take(half_moves)
+            .any(|&k| k == key)
     }
 
     #[inline(always)]
-    pub fn step_node_and_check(&mut self) -> bool { // Increases node counter, checks stopped bool. Checks in with the control thread every NODE_CHECK_INTERVAL_MASK nodes.
+    pub fn step_node_and_check(&mut self) -> bool {
+        // Increases node counter, checks stopped bool. Checks in with the control thread every NODE_CHECK_INTERVAL_MASK nodes.
         self.nodes_visited += 1;
         if self.stopped || self.nodes_visited >= self.node_limit {
             self.stopped = true;
             return true;
         }
-        if (self.nodes_visited & NODE_CHECK_INTERVAL_MASK == 0) && self.search_control.is_stopped() {
+        if (self.nodes_visited & NODE_CHECK_INTERVAL_MASK == 0) && self.search_control.is_stopped()
+        {
             self.stopped = true;
             return true;
         }
@@ -59,10 +70,12 @@ impl<'a> SearchEnv<'a> {
 
     #[inline]
     pub fn is_draw(&self, board: &Board, ply: usize) -> bool {
-        ply > 0 && (
-            board.game_state.half_moves >= 100 || 
-            self.is_repetition(board.game_state.curr_zobrist_key, board.game_state.half_moves as usize)
-        )
+        ply > 0
+            && (board.game_state.half_moves >= 100
+                || self.is_repetition(
+                    board.game_state.curr_zobrist_key,
+                    board.game_state.half_moves as usize,
+                ))
     }
 
     pub fn update_pv(&mut self, ply: usize, mv: Move) {
@@ -91,7 +104,7 @@ pub struct SearchContext {
 }
 
 impl SearchContext {
-    pub fn new_full_window(depth: i64, lmr_allowed: bool) -> Self{
+    pub fn new_full_window(depth: i64, lmr_allowed: bool) -> Self {
         init_magics(); // Does nothing if magics are initialized, and we only call this once at the start of each ID loop.
         SearchContext {
             alpha: -1_000_000,
@@ -99,16 +112,16 @@ impl SearchContext {
             ply: 0,
             depth: depth,
             is_pv: true,
-            lmr_allowed
+            lmr_allowed,
         }
     }
-    
+
     pub fn ply(&self) -> usize {
         self.ply
     }
     #[inline(always)]
     pub fn next_context(&self, depth: i64, is_pv: bool) -> Self {
-        SearchContext { 
+        SearchContext {
             alpha: -self.beta,
             beta: -self.alpha,
             ply: self.ply + 1,
@@ -163,10 +176,16 @@ impl SearchContext {
                 let move_clamp = move_count.min(63);
 
                 // We've already done the bounds check.
-                let reduction = unsafe {LM_REDUCTIONS_TABLE.get_unchecked(depth_clamp).get_unchecked(move_clamp) };
-                let lmr_score = -negamax(board, self.next_context_null_window(depth - reduction), env); // Search at reduced depth with a null window.
+                let reduction = unsafe {
+                    LM_REDUCTIONS_TABLE
+                        .get_unchecked(depth_clamp)
+                        .get_unchecked(move_clamp)
+                };
+                let lmr_score =
+                    -negamax(board, self.next_context_null_window(depth - reduction), env); // Search at reduced depth with a null window.
 
-                if lmr_score > self.alpha { // We failed high! Research at full depth.
+                if lmr_score > self.alpha {
+                    // We failed high! Research at full depth.
                     -negamax(board, self.next_context_null_window(depth), env)
                 } else {
                     lmr_score
@@ -175,7 +194,8 @@ impl SearchContext {
                 -negamax(board, self.next_context_null_window(depth), env)
             };
 
-            if self.is_pv && score > self.alpha && score < self.beta { // Failed high even at full depth. Let's run with a full window to get an accurate score.
+            if self.is_pv && score > self.alpha && score < self.beta {
+                // Failed high even at full depth. Let's run with a full window to get an accurate score.
                 score = -negamax(board, self.next_context(depth, self.is_pv), env);
             }
             score
@@ -190,7 +210,9 @@ pub struct SearchControl {
 
 impl SearchControl {
     pub fn new() -> Self {
-        SearchControl { stop: Arc::new(AtomicBool::new(false)) }
+        SearchControl {
+            stop: Arc::new(AtomicBool::new(false)),
+        }
     }
 
     pub fn is_stopped(&self) -> bool {

@@ -2,12 +2,7 @@ use super::*;
 use crate::{bitboard::Bitboard, moves::MoveList, piece::Piece};
 
 impl Board {
-    pub fn generate_slider_moves(
-        &self,
-        from_sq: u16,
-        moves: &mut MoveList,
-        piece: Piece,
-    ) {
+    pub fn generate_slider_moves(&self, from_sq: u16, moves: &mut MoveList, piece: Piece) {
         let side = self.game_state.active_side as usize;
         let friendly_pieces = self.side_bb[side];
         //XORing here saves us an (albeit unlikely to be mispredicted) branch.
@@ -19,7 +14,10 @@ impl Board {
             Piece::Rook => unsafe { magic_sliders::get_rook_attacks(occupancy, from_sq) },
             Piece::Bishop => unsafe { magic_sliders::get_bishop_attacks(occupancy, from_sq) },
             // Queen's attack set is identical to the complement of the Rook and Bishop. Nifty!
-            Piece::Queen => unsafe { magic_sliders::get_rook_attacks(occupancy, from_sq) | magic_sliders::get_bishop_attacks(occupancy, from_sq) },
+            Piece::Queen => unsafe {
+                magic_sliders::get_rook_attacks(occupancy, from_sq)
+                    | magic_sliders::get_bishop_attacks(occupancy, from_sq)
+            },
             _ => unreachable!("Piece passed to generate_slider_moves is not a slider!"),
         };
 
@@ -38,12 +36,7 @@ impl Board {
     }
 
     // Used primarily for quiescense search, only generates captures.
-    pub fn generate_slider_captures(
-        &self,
-        from_sq: u16,
-        moves: &mut MoveList,
-        piece: Piece,
-    ) {
+    pub fn generate_slider_captures(&self, from_sq: u16, moves: &mut MoveList, piece: Piece) {
         let side = self.game_state.active_side as usize;
         let enemy_pieces = self.side_bb[side ^ 1];
         let occupancy = self.side_bb[0] | self.side_bb[1];
@@ -52,7 +45,10 @@ impl Board {
             Piece::Rook => unsafe { magic_sliders::get_rook_attacks(occupancy, from_sq) },
             Piece::Bishop => unsafe { magic_sliders::get_bishop_attacks(occupancy, from_sq) },
             // Queen's attack set is identical to the complement of the Rook and Bishop. Nifty!
-            Piece::Queen => unsafe { magic_sliders::get_rook_attacks(occupancy, from_sq) | magic_sliders::get_bishop_attacks(occupancy, from_sq) },
+            Piece::Queen => unsafe {
+                magic_sliders::get_rook_attacks(occupancy, from_sq)
+                    | magic_sliders::get_bishop_attacks(occupancy, from_sq)
+            },
             _ => panic!("Piece passed to generate_slider_moves is not a slider!"),
         } & enemy_pieces;
 

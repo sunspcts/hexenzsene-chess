@@ -1,6 +1,6 @@
 use std::{io::{self, BufRead}, sync::{Arc, Mutex, atomic::Ordering}, thread, time::Duration};
 
-use crate::{board::{Board, Side}, moves::{Move, MoveList}, search::{SearchControl, SearchEnv, TT, search}};
+use crate::{board::{Board, Side}, movegen::magic_sliders::init_magics, moves::{Move, MoveList}, search::{SearchControl, SearchEnv, TT, search}};
 
 const ENGINE_NAME: &str = "Hexenzsene v0.2.0";
 const ENGINE_AUTHOR: &str = "Averie Harkins";
@@ -8,15 +8,16 @@ const DEFAULT_DEPTH: i64 = 8;
 const DEFAULT_HASH_MB: usize = 16;
 const STARTPOS_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-//Handles UCI.
+// Currently the ONLY public facing function in the crate.
+// Handles UCI protocol.
+
 pub fn engine() {
+    println!("Initializing...");
+    // MAGICS_PTR is null by default. If we don't initialize it, we're gonna have a bad time!
+    // We try to initialize this a LOT more in the actual search loops (Notably at the start of every iterative deepening step).
+    init_magics(); 
     let stdin = io::stdin();
-    let mut board = Board::new_from_fen(STARTPOS_FEN);
-    let mut hash_history = vec![board.game_state.curr_zobrist_key];
-    let mut search_control = SearchControl::new();
-    let mut search_thread: Option<thread::JoinHandle<()>> = None;
-    let tt = Arc::new(Mutex::new(TT::new(DEFAULT_HASH_MB)));
-    let mut current_age: u8 = 0;
+    let mut engine = Engine::new();
 
     println!("Awaiting UCI Command...");
 
@@ -28,131 +29,166 @@ pub fn engine() {
         }
         let mut parts = line.split_whitespace();
         match parts.next() {
-            Some("uci") => {
-                println!("id name {}", ENGINE_NAME);
-                println!("id author {}", ENGINE_AUTHOR);
-                println!("option name Hash type spin default {} min 1 max 1024", DEFAULT_HASH_MB);
-                println!("uciok");
-            }
+            Some("uci") => engine.print_info(),
             Some("isready") => println!("readyok"),
-            Some("setoption") => {
-                stop_search(&mut search_thread, &mut search_control);
-                if let Some((name, value)) = parse_setoption(line)
-                    && name.eq_ignore_ascii_case("hash")
-                        && let Ok(mb) = value.parse::<usize>() {
-                            let mb = mb.clamp(1, 1024);
-                            *tt.lock().unwrap() = TT::new(mb);
-                        }
-            }
-            Some("position") => {
-                stop_search(&mut search_thread, &mut search_control);
-                (board, hash_history) = parse_uci_position(board, line);
-            }
-            Some("ucinewgame") => {
-                stop_search(&mut search_thread, &mut search_control);
-                board = Board::new_from_fen(STARTPOS_FEN);
-                hash_history = vec![board.game_state.curr_zobrist_key];
-                current_age = 0;
-                tt.lock().unwrap().clear();
-            }
-            Some("go") => {
-                stop_search(&mut search_thread, &mut search_control);
-                search_control = SearchControl::new();
-                current_age = current_age.wrapping_add(1);
-                let params = GoParameters::new(line);
-                let max_depth = params.depth.unwrap_or(
-                    if params.wtime.is_some() || params.btime.is_some() || params.movetime.is_some() || params.infinite || params.nodes.is_some() {
-                        200
-                    } else {
-                        DEFAULT_DEPTH
-                    }
-                );
-
-                let search_time = calculate_search_time(&board, &params);
-
-                if let Some(time_ms) = search_time {
-                    let stop_clone = search_control.stop.clone();
-                    thread::spawn(move || {
-                        thread::sleep(Duration::from_millis(time_ms));
-                        stop_clone.store(true, Ordering::Relaxed);
-                    });
-                }
-
-                let new_board = board;
-                let new_history = hash_history.clone();
-                let new_control = search_control.clone();
-
-                let node_limit = params.nodes.unwrap_or(u64::MAX);
-                let tt_clone = tt.clone();
-                let search_age = current_age;
-
-                search_thread = Some(thread::spawn(move || {
-                    let mut tt_guard = tt_clone.lock().unwrap();
-                    let mut env = SearchEnv {
-                        nodes_visited: 0,
-                        node_limit,
-                        silent: false,
-                        hash_history: new_history,
-                        search_control: new_control,
-                        stopped: false,
-                        age: search_age,
-                        move_lists: [MoveList::default(); crate::search::MAX_PLY],
-                        tt: &mut tt_guard,
-                        killers: [[0; 2]; crate::search::MAX_PLY],
-                        history: [[[0; 64]; 64]; 2],
-                        pv_table: [[Move::new_from_raw(0); crate::search::MAX_PLY]; crate::search::MAX_PLY],
-                        pv_length: [0; crate::search::MAX_PLY],
-                    };
-
-                    let (_score, best_move) = search(&new_board, max_depth, &mut env);
-
-                    if let Some(mv) = best_move {
-                        println!("bestmove {}", mv);
-                    } else {
-                        let fallback = new_board
-                            .generate_pseudolegal_moves_list()
-                            .into_iter()
-                            .find(|m| new_board.make(*m).is_some());
-
-                        if let Some(mv) = fallback {
-                            println!("bestmove {}", mv);
-                        } else {
-                            println!("bestmove (none)");
-                        }
-                    }
-                }));
-            }
-            Some("stop") => {
-                stop_search(&mut search_thread, &mut search_control);
-                if let Some(handle) = search_thread.take() {
-                    let _ = handle.join();
-                }
-            }
+            Some("setoption") => engine.setoption(line),
+            Some("position") => engine.position(line),
+            Some("ucinewgame") => engine.ucinewgame(),
+            Some("go") => engine.go(line),
+            Some("stop") => engine.stop(),
             Some("quit") => {
-                stop_search(&mut search_thread, &mut search_control);
-                if let Some(handle) = search_thread.take() {
-                    let _ = handle.join();
-                }
+                engine.stop();
                 break;
             }
-            Some("perft") => {
-                let board = Board::new_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-                let start = std::time::Instant::now();
-                let nodes = board.perft(6);
-                let elapsed = start.elapsed();
-                println!("perft(6): {} nodes in {:.3?}, {:.2} MNPS", nodes, elapsed, (nodes as f64 / elapsed.as_secs_f64()) / 1_000_000.0);
-            }
+            Some("perft") => engine.perft(),
             _ => {}
         }
     }
-
-    let _ = (board, hash_history);
 }
 
-pub fn stop_search(search_thread: &mut Option<thread::JoinHandle<()>>, search_control: &mut SearchControl) {
-    search_control.stop();
-    if let Some(handle) = search_thread.take() {
-        let _ = handle.join();
+struct Engine {
+    board: Board,
+    hash_history: Vec<u64>,
+    search_control: SearchControl,
+    search_thread: Option<thread::JoinHandle<()>>,
+    tt: Arc<Mutex<TT>>,
+    current_age: u8,
+}
+
+impl Engine {
+    fn new() -> Self {
+        let board = Board::new_from_fen(STARTPOS_FEN);
+        let hash_history = vec![board.game_state.curr_zobrist_key];
+        Self {
+            board,
+            hash_history,
+            search_control: SearchControl::new(),
+            search_thread: None,
+            tt: Arc::new(Mutex::new(TT::new(DEFAULT_HASH_MB))),
+            current_age: 0,
+        }
+    }
+
+    fn stop_search(&mut self) {
+        self.search_control.stop();
+        if let Some(handle) = self.search_thread.take() {
+            let _ = handle.join();
+        }
+    }
+
+    fn print_info(&self) {
+        println!("id name {}", ENGINE_NAME);
+        println!("id author {}", ENGINE_AUTHOR);
+        println!("option name Hash type spin default {} min 1 max 1024", DEFAULT_HASH_MB);
+        println!("uciok");
+    }
+
+    fn setoption(&mut self, line: &str) {
+        self.stop_search();
+        if let Some((name, value)) = parse_setoption(line)
+            && name.eq_ignore_ascii_case("hash")
+            && let Ok(mb) = value.parse::<usize>()
+        {
+            let mb = mb.clamp(1, 1024);
+            *self.tt.lock().unwrap() = TT::new(mb);
+        }
+    }
+
+    fn position(&mut self, line: &str) {
+        self.stop_search();
+        (self.board, self.hash_history) = parse_uci_position(self.board, line);
+    }
+
+    fn ucinewgame(&mut self) {
+        self.stop_search();
+        self.board = Board::new_from_fen(STARTPOS_FEN);
+        self.hash_history = vec![self.board.game_state.curr_zobrist_key];
+        self.current_age = 0;
+        self.tt.lock().unwrap().clear();
+    }
+
+    fn go(&mut self, line: &str) {
+        self.stop_search();
+        self.search_control = SearchControl::new();
+        self.current_age = self.current_age.wrapping_add(1);
+
+        let params = GoParameters::new(line);
+        let max_depth = params.depth.unwrap_or(
+            if params.wtime.is_some() || params.btime.is_some() || params.movetime.is_some() || params.infinite || params.nodes.is_some() {
+                200
+            } else {
+                DEFAULT_DEPTH
+            }
+        );
+
+        let search_time = calculate_search_time(&self.board, &params);
+
+        if let Some(time_ms) = search_time {
+            let stop_clone = self.search_control.stop.clone();
+            thread::spawn(move || {
+                thread::sleep(Duration::from_millis(time_ms));
+                stop_clone.store(true, Ordering::Relaxed);
+            });
+        }
+
+        let new_board = self.board;
+        let new_history = self.hash_history.clone();
+        let new_control = self.search_control.clone();
+
+        let node_limit = params.nodes.unwrap_or(u64::MAX);
+        let tt_clone = self.tt.clone();
+        let search_age = self.current_age;
+
+        self.search_thread = Some(thread::spawn(move || {
+            let mut tt_guard = tt_clone.lock().unwrap();
+            let mut env = SearchEnv {
+                nodes_visited: 0,
+                node_limit,
+                silent: false,
+                hash_history: new_history,
+                search_control: new_control,
+                stopped: false,
+                age: search_age,
+                move_lists: [MoveList::default(); crate::search::MAX_PLY],
+                tt: &mut tt_guard,
+                killers: [[0; 2]; crate::search::MAX_PLY],
+                history: [[[0; 64]; 64]; 2],
+                pv_table: [[Move::new_from_raw(0); crate::search::MAX_PLY]; crate::search::MAX_PLY],
+                pv_length: [0; crate::search::MAX_PLY],
+            };
+
+            let (_score, best_move) = search(&new_board, max_depth, &mut env);
+
+            if let Some(mv) = best_move {
+                println!("bestmove {}", mv);
+            } else {
+                let mut moves = MoveList::default();
+                unsafe { new_board.generate_pseudolegal_moves(&mut moves) };
+                let fallback = moves.into_iter().find(|m| new_board.make(*m).is_some());
+                if let Some(mv) = fallback {
+                    println!("bestmove {}", mv);
+                } else {
+                    println!("bestmove (none)");
+                }
+            }
+        }));
+    }
+
+    fn stop(&mut self) {
+        self.stop_search();
+    }
+
+    fn perft(&self) {
+        let board = Board::new_from_fen(STARTPOS_FEN);
+        let start = std::time::Instant::now();
+        let nodes = board.perft(6);
+        let elapsed = start.elapsed();
+        println!(
+            "perft(6): {} nodes in {:.3?}, {:.2} MNPS",
+            nodes,
+            elapsed,
+            (nodes as f64 / elapsed.as_secs_f64()) / 1_000_000.0
+        );
     }
 }
 

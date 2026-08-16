@@ -3,19 +3,19 @@ use super::*;
 use crate::{board::Board};
 
 pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut SearchEnv) -> i64 {
-    let ply = (context.ply as usize).min(MAX_PLY - 1); 
+    let ply = context.ply().min(MAX_PLY - 1); 
     env.pv_length[ply] = 0;
     env.pv_table[ply][0] = Move::new_from_raw(0);
 
     if env.step_node_and_check() { return 0; } // Have we hit a limit, or has the engine stopped the search?
 
     // 50 move rule and repetition detection.
-    if env.is_draw(board, context.ply) {
+    if env.is_draw(board, ply) {
         return 0;
     }
 
     // Check extensions.
-    let in_check = board.is_in_check(); 
+    let in_check = unsafe { board.is_in_check() }; 
     let depth = context.depth + in_check as i64;
     context.lmr_allowed = depth >= 3 && !in_check;
 
@@ -27,8 +27,8 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
     let tt_entry = env.tt.get(board.game_state.curr_zobrist_key); // Probe the TT for this position.
     let tt_move = tt_entry.and_then(|e| e.best_move());
 
-    if context.ply > 0 { // Does the TT move cause a cutoff?
-        if let Some(score) = tt_entry.and_then(|e| e.cutoff(context.alpha, context.beta, depth, context.ply)) {
+    if ply > 0 { // Does the TT move cause a cutoff?
+        if let Some(score) = tt_entry.and_then(|e| e.cutoff(context.alpha, context.beta, depth, ply as i64)) {
             return score;
         }
     }
@@ -40,7 +40,7 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
         None
     };
 
-    board.generate_pseudolegal_moves(&mut env.move_lists[ply]); // No staged movegen yet. Generate everything.
+    unsafe { board.generate_pseudolegal_moves(&mut env.move_lists[ply]) }; // No staged movegen yet. Generate everything.
     env.move_lists[ply].score_moves(board, pv_move, tt_move, &env.killers[ply], &env.history); // Ordering score!
     let moves_count = env.move_lists[ply].len();
 
@@ -113,7 +113,7 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
 
     if move_count == 0 { // We never found a legal move.
         if in_check {
-            return -MATE_EVAL + context.ply;
+            return -MATE_EVAL + ply as i64;
         } else {
             return 0; // Stalemate
         }
@@ -122,7 +122,7 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
     if !env.stopped { // Best move of the node. We should store it in the TT.
         env.tt.store(TTEntry {
             zobrist_key: board.game_state.curr_zobrist_key,
-            score: score_to_tt(max_score, context.ply),
+            score: score_to_tt(max_score, ply as i64),
             move_data: best_move.map(|m| m.data()).unwrap_or(0),
             depth: depth as i8,
             node_type: context.node_type(max_score, old_alpha),

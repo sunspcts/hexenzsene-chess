@@ -21,8 +21,8 @@ pub struct MagicTable {
 }
 
 impl MagicTable {
-    // UNSAFE:
-    // entry_idx must be < 128
+    /// # SAFETY
+    /// entry_idx must be < 128
     #[inline(always)]
     pub unsafe fn get_attacks(&self, blockers: Bitboard, entry_idx: usize) -> Bitboard {
         debug_assert!(entry_idx < 128, "Magic entry index out of bounds: {}", entry_idx);
@@ -33,16 +33,16 @@ impl MagicTable {
         unsafe { *self.attacks.get_unchecked(entry.offset as usize + index) }
     }
 
-    // UNSAFE:
-    // square < 64
+    /// # SAFETY
+    /// square < 64
     #[inline(always)]
     pub unsafe fn bishop_attacks(&self, blockers: Bitboard, square: u16) -> Bitboard {
         debug_assert!(square < 64, "Bishop square index out of bounds: {}", square);
         unsafe { self.get_attacks(blockers, square as usize) }
     }
 
-    // UNSAFE:
-    // square < 64
+    /// # SAFETY
+    /// square < 64
     #[inline(always)]
     pub unsafe fn rook_attacks(&self, blockers: Bitboard, square: u16) -> Bitboard {
         debug_assert!(square < 64, "Rook square index out of bounds: {}", square);
@@ -50,22 +50,13 @@ impl MagicTable {
     }
 }
 
+#[inline(always)]
 pub fn init_magics() {
     unsafe {
         if MAGICS_PTR.is_null() {
             let table = Box::leak(Box::new(init_magic_table()));
             MAGICS_PTR = table as *const MagicTable;
         }
-    }
-}
-
-// UNSAFE
-// magics must have been initialized
-#[inline(always)]
-pub unsafe fn magics() -> &'static MagicTable {
-    unsafe {
-        debug_assert!(!MAGICS_PTR.is_null(), "Magics must be initialized before access");
-        &*MAGICS_PTR
     }
 }
 

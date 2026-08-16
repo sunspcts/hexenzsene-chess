@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::bitboard::Bitboard;
+use crate::{bitboard::Bitboard, hashing::{ZOBRIST_RANDOMS, get_piece_zobrist_index}, movegen::magic_sliders::init_magics};
 
 impl Board {
     pub fn make(&self, mv: Move) -> Option<Board> {
@@ -25,7 +25,7 @@ impl Board {
             };
             // We check if the to square is attacked at the end of the function anyway.
             // Checking here might give a *tiny* speedup from the early return? Will test at some point but there are more pressing matters ^_^
-            if self.is_attacked(from, enemy) || self.is_attacked(transit_sq, enemy) || self.is_attacked(to, enemy){
+            if unsafe { self.is_attacked(from, enemy) || self.is_attacked(transit_sq, enemy) || self.is_attacked(to, enemy) } {
                 return None;
             }
         }
@@ -104,7 +104,7 @@ impl Board {
         board.game_state.curr_zobrist_key ^= zobrist_delta ^ ZOBRIST_RANDOMS[768 + 16 + 8];
 
         let king_square = board.piece_bb[side as usize][Piece::King as usize].trailing_zeros() as u16;
-        let is_legal = !board.is_attacked(king_square, enemy);
+        let is_legal = !unsafe { board.is_attacked(king_square, enemy) };
 
         // There should be a way to filter obviously illegal moves that runs before this.
         if !is_legal {
@@ -148,17 +148,18 @@ impl Board {
     }
 
     pub fn perft(&self, depth: u8) -> u64 {
+        init_magics(); // safety :D
         let mut move_lists = [MoveList::default(); 256];
-        self.perft_helper(depth, 0, &mut move_lists)
+        unsafe { self.perft_helper(depth, 0, &mut move_lists) }
     }
 
-    fn perft_helper(&self, depth: u8, ply: usize, move_lists: &mut [MoveList; 256]) -> u64 {
+    unsafe fn perft_helper(&self, depth: u8, ply: usize, move_lists: &mut [MoveList; 256]) -> u64 {
         if depth == 0 {
             return 1;
         }
 
         let ply_idx = ply.min(255);
-        self.generate_pseudolegal_moves(&mut move_lists[ply_idx]);
+        unsafe { self.generate_pseudolegal_moves(&mut move_lists[ply_idx]) };
         let moves = move_lists[ply_idx];
 
         if depth == 1 {
@@ -174,7 +175,7 @@ impl Board {
         let mut nodes = 0;
         for &m in &moves {
             if let Some(next_board) = self.make(m) {
-                nodes += next_board.perft_helper(depth - 1, ply + 1, move_lists);
+                nodes += unsafe { next_board.perft_helper(depth - 1, ply + 1, move_lists) };
             }
         }
 

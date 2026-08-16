@@ -21,13 +21,15 @@ use tt::{NodeType, TTEntry, score_to_tt};
 pub use env::{SearchEnv, SearchControl, SearchContext};
 pub use tt::TT;
 
-use crate::{board::Board, moves::Move};
+use crate::{board::Board, movegen::magic_sliders::init_magics, moves::Move};
 
 pub const MATE_EVAL: i64 = 30000;
 const NODE_CHECK_INTERVAL_MASK: u64 = 2047; // Check search control every 2048 nodes
 pub const MAX_PLY: usize = 256;
 
-fn search_fixed_depth(board: &Board, depth: i64, env: &mut SearchEnv) -> (i64, Option<Move>) {
+/// # SAFETY 
+/// Calls unsafe fn `board.is_in_check()`` before initializing context, which requires `MAGICS_PTR` to be initialized.
+unsafe fn search_fixed_depth(board: &Board, depth: i64, env: &mut SearchEnv) -> (i64, Option<Move>) {
     // Fetch the TT move.
     let tt_move = env.tt.get(board.game_state.curr_zobrist_key).and_then(|e| e.best_move()); 
     let ply = 0;
@@ -41,26 +43,18 @@ fn search_fixed_depth(board: &Board, depth: i64, env: &mut SearchEnv) -> (i64, O
     env.pv_length[0] = 0;
     env.pv_table[0][0] = Move::new_from_raw(0);
 
-    board.generate_pseudolegal_moves(&mut env.move_lists[ply]); // No staged movegen yet. Generate everything.
+    let in_check = unsafe { board.is_in_check() };
+    let root_depth = depth + in_check as i64;
+
+    let mut context = SearchContext::new_full_window(root_depth, root_depth >= 3 && !in_check);
+
+    unsafe { board.generate_pseudolegal_moves(&mut env.move_lists[ply]) }; // No staged movegen yet. Generate everything.
     env.move_lists[ply].score_moves(board, pv_move, tt_move, &env.killers[ply], &env.history); // Ordering score!
     let moves_count = env.move_lists[ply].len();
 
     let mut best_move = None;
     // PV Search treats the first move differently, as it's the only move that's searched with a full window by default.
     let mut move_count = 0; 
-
-    let in_check = board.is_in_check();
-    let root_depth = depth + in_check as i64;
-
-    let mut context = SearchContext {
-        alpha: -1_000_000, 
-        beta: 1_000_000,
-        ply: 0,
-        depth: root_depth,
-        is_pv: true, // First move is always the PV-Move.
-        nmp_allowed: true,
-        lmr_allowed: root_depth >= 3 && !in_check,
-    };
 
     for i in 0..moves_count {
         let candidate_move = env.move_lists[ply].pick_best(i);
@@ -70,7 +64,7 @@ fn search_fixed_depth(board: &Board, depth: i64, env: &mut SearchEnv) -> (i64, O
             let is_killer = is_quiet && (candidate_move.data() == env.killers[ply][0] || candidate_move.data() == env.killers[ply][1]);
 
             env.hash_history.push(board.game_state.curr_zobrist_key);
-            // Calls negamax, taking into account the first move.
+            // Calls safe wrapper around negamax, taking into account the first move.
             let score = context.search_move(
                 &next_board,
                 root_depth - 1,
@@ -111,11 +105,12 @@ fn search_fixed_depth(board: &Board, depth: i64, env: &mut SearchEnv) -> (i64, O
 }
 
 pub fn search(board: &Board, max_depth: i64, env: &mut SearchEnv) -> (i64, Option<Move>) {
+    init_magics();
     let mut global_best_move = None;
     let mut global_best_score = 0;
 
     for d in 1..=max_depth {
-        let (score, best_move) = search_fixed_depth(board, d, env);
+        let (score, best_move) = unsafe { search_fixed_depth(board, d, env) };
 
         if env.stopped {
             if global_best_move.is_none() && best_move.is_some() {

@@ -58,7 +58,7 @@ impl<'a> SearchEnv<'a> {
     }
 
     #[inline]
-    pub fn is_draw(&self, board: &Board, ply: i64) -> bool {
+    pub fn is_draw(&self, board: &Board, ply: usize) -> bool {
         ply > 0 && (
             board.game_state.half_moves >= 100 || 
             self.is_repetition(board.game_state.curr_zobrist_key, board.game_state.half_moves as usize)
@@ -84,15 +84,28 @@ impl<'a> SearchEnv<'a> {
 pub struct SearchContext {
     pub alpha: i64,
     pub beta: i64,
-    pub ply: i64,
+    ply: usize,
     pub depth: i64,
     pub is_pv: bool,
-    #[allow(dead_code)]
-    pub nmp_allowed: bool, // unused
     pub lmr_allowed: bool,
 }
 
 impl SearchContext {
+    pub fn new_full_window(depth: i64, lmr_allowed: bool) -> Self{
+        init_magics(); // Does nothing if magics are initialized, and we only call this once at the start of each ID loop.
+        SearchContext {
+            alpha: -1_000_000,
+            beta: 1_000_000,
+            ply: 0,
+            depth: depth,
+            is_pv: true,
+            lmr_allowed
+        }
+    }
+    
+    pub fn ply(&self) -> usize {
+        self.ply
+    }
     #[inline(always)]
     pub fn next_context(&self, depth: i64, is_pv: bool) -> Self {
         SearchContext { 
@@ -101,7 +114,6 @@ impl SearchContext {
             ply: self.ply + 1,
             depth,
             is_pv,
-            nmp_allowed: true,
             lmr_allowed: self.lmr_allowed,
         }
     }
@@ -125,11 +137,11 @@ impl SearchContext {
             ply: self.ply + 1,
             depth,
             is_pv: false,
-            nmp_allowed: true,
             lmr_allowed: self.lmr_allowed,
         }
     }
 
+    // MAGICS_PTR is ALWAYS initialized if a SearchContext exists.
     #[inline(always)]
     pub fn search_move(
         &self,
@@ -151,7 +163,7 @@ impl SearchContext {
                 let move_clamp = move_count.min(63);
 
                 // We've already done the bounds check.
-                let reduction = unsafe {LM_REDUCTIONS_TABLE.get_unchecked(depth_clamp).get_unchecked(move_clamp)};
+                let reduction = unsafe {LM_REDUCTIONS_TABLE.get_unchecked(depth_clamp).get_unchecked(move_clamp) };
                 let lmr_score = -negamax(board, self.next_context_null_window(depth - reduction), env); // Search at reduced depth with a null window.
 
                 if lmr_score > self.alpha { // We failed high! Research at full depth.

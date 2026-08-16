@@ -40,7 +40,7 @@ impl Board {
 }
 // FEN PARSING
 
-pub fn init_bb_mb_fen(fen_part_1: &str) -> ([[Bitboard; 6]; 2], [Bitboard; 2], [Piece; 64]) {
+fn init_bb_mb_fen(fen_part_1: &str) -> ([[Bitboard; 6]; 2], [Bitboard; 2], [Piece; 64]) {
     let mut piece_bb = [[Bitboard::default(); 6]; 2];
     let mut side_bb = [Bitboard::default(); 2];
     let mut mailbox: [Piece; 64] = [Piece::None; 64];
@@ -87,7 +87,7 @@ pub fn init_bb_mb_fen(fen_part_1: &str) -> ([[Bitboard; 6]; 2], [Bitboard; 2], [
     (piece_bb, side_bb, mailbox)
 }
 
-pub fn init_active_side(fen_part_2: &str) -> Side {
+fn init_active_side(fen_part_2: &str) -> Side {
     match fen_part_2 {
         "w" => Side::White,
         "b" => Side::Black,
@@ -95,7 +95,7 @@ pub fn init_active_side(fen_part_2: &str) -> Side {
     }
 }
 
-pub fn init_castling_rights(fen_part_3: &str) -> u8 {
+fn init_castling_rights(fen_part_3: &str) -> u8 {
     let mut castling_rights = 0;
     for c in fen_part_3.chars() {
         castling_rights += match c {
@@ -109,7 +109,7 @@ pub fn init_castling_rights(fen_part_3: &str) -> u8 {
     castling_rights
 }
 
-pub fn init_ep_square(fen_part_4: &str) -> Option<u8> {
+fn init_ep_square(fen_part_4: &str) -> Option<u8> {
     if fen_part_4 == "-" {
         None
     } else { // if the square is invalid, or if it only includes file, we'll get corrupted data. conforms to uci specification though, so it's fine.
@@ -122,10 +122,10 @@ pub fn init_ep_square(fen_part_4: &str) -> Option<u8> {
     }
 }
 
-pub fn init_halfmoves(fen_part_5: &str) -> u8 {
+fn init_halfmoves(fen_part_5: &str) -> u8 {
     fen_part_5.parse::<u8>().unwrap()
 }
 
-pub fn init_move_counter(fen_part_6: &str) -> u16 {
+fn init_move_counter(fen_part_6: &str) -> u16 {
     fen_part_6.parse::<u16>().unwrap()
 }

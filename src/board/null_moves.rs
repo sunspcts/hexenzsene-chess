@@ -1,5 +1,6 @@
-use super::{Board, Side, ZOBRIST_RANDOMS};
+use super::{Board, Side};
 use crate::bitboard::Bitboard;
+use crate::hashing::ZOBRIST_RANDOMS;
 use crate::piece::Piece;
 
 impl Board {

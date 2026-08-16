@@ -80,6 +80,26 @@ pub unsafe fn get_bishop_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
     }
 }
 
+// UNSAFE
+// Returns ONLY X-Ray attacks on `square` passing through `blockers` to secondary target squares.
+#[inline(always)]
+pub unsafe fn get_rook_xray_attacks(occupancy: Bitboard, blockers: Bitboard, square: u16) -> Bitboard {
+    let attacks = unsafe { get_rook_attacks(occupancy, square) };
+    let filtered_blockers = blockers & attacks;
+    let secondary_attacks = unsafe { get_rook_attacks(occupancy ^ filtered_blockers, square) };
+    attacks ^ secondary_attacks
+}
+
+// UNSAFE
+// Returns ONLY X-Ray attacks on `square` passing through `blockers` to secondary target squares.
+#[inline(always)]
+pub unsafe fn get_bishop_xray_attacks(occupancy: Bitboard, blockers: Bitboard, square: u16) -> Bitboard {
+    let attacks = unsafe { get_bishop_attacks(occupancy, square) };
+    let filtered_blockers = blockers & attacks;
+    let secondary_attacks = unsafe { get_bishop_attacks(occupancy ^ filtered_blockers, square) };
+    attacks ^ secondary_attacks
+}
+
 fn compute_rook_mask(sq: usize) -> Bitboard {
     let rank_mask = Bitboard::new(0xFFu64 << ((sq / 8) * 8));
     let file_mask = Bitboard::new(0x0101010101010101u64 << (sq % 8));

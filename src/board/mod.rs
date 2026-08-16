@@ -111,4 +111,49 @@ impl Board {
             Side::Black => -1
         }
     }
+
+    /// Returns a bitboard containing all friendly pieces that are pinned to the king.
+    pub fn pinned_bitboard(&self, side: Side) -> Bitboard {
+        let enemy = side.flip();
+        let king_sq = (self.piece_bb[side as usize][Piece::King as usize]).trailing_zeros() as u16;
+        if king_sq >= 64 {
+            return Bitboard::zero();
+        }
+
+        let occupancy = self.side_bb[0] | self.side_bb[1];
+        let friendly_pieces = self.side_bb[side as usize];
+        let mut pinned_pieces = Bitboard::zero();
+
+        let enemy_rooks_and_queens = self.piece_bb[enemy as usize][Piece::Rook as usize] | self.piece_bb[enemy as usize][Piece::Queen as usize];
+
+        if enemy_rooks_and_queens != Bitboard::zero() {
+            let mut pinners = unsafe { magic_sliders::get_rook_xray_attacks(occupancy, friendly_pieces, king_sq) } & enemy_rooks_and_queens;
+            while pinners != Bitboard::zero() {
+                let pinner_sq = pinners.trailing_zeros() as u16;
+                let line_between = unsafe {
+                    magic_sliders::get_rook_attacks(Bitboard::zero(), king_sq)
+                        & magic_sliders::get_rook_attacks(Bitboard::zero(), pinner_sq)
+                };
+                pinned_pieces |= line_between & friendly_pieces;
+                pinners ^= Bitboard::new(1u64 << pinner_sq);
+            }
+        }
+
+        let enemy_bishops_and_queens = self.piece_bb[enemy as usize][Piece::Bishop as usize] | self.piece_bb[enemy as usize][Piece::Queen as usize];
+
+        if enemy_bishops_and_queens != Bitboard::zero() {
+            let mut pinners = unsafe { magic_sliders::get_bishop_xray_attacks(occupancy, friendly_pieces, king_sq) } & enemy_bishops_and_queens;
+            while pinners != Bitboard::zero() {
+                let pinner_sq = pinners.trailing_zeros() as u16;
+                let line_between = unsafe {
+                    magic_sliders::get_bishop_attacks(Bitboard::zero(), king_sq)
+                        & magic_sliders::get_bishop_attacks(Bitboard::zero(), pinner_sq)
+                };
+                pinned_pieces |= line_between & friendly_pieces;
+                pinners ^= Bitboard::new(1u64 << pinner_sq);
+            }
+        }
+
+        pinned_pieces
+    }
 }

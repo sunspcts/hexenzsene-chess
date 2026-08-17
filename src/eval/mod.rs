@@ -108,7 +108,7 @@ fn pawn_eval(board: &Board, score: &mut i64, phase: i64, params: &EvalParams) {
                 (params.isolated_pawn_mg * phase + params.isolated_pawn_eg * eg_phase) / MAX_PHASE;
         }
         if is_passed(sq, 0, black) {
-            let rank = (7 - (sq / 8)) as usize;
+            let rank = (sq / 8) as usize;
             *score += (params.passed_pawn_mg[rank] * phase
                 + params.passed_pawn_eg[rank] * eg_phase)
                 / MAX_PHASE;
@@ -121,7 +121,7 @@ fn pawn_eval(board: &Board, score: &mut i64, phase: i64, params: &EvalParams) {
                 (params.isolated_pawn_mg * phase + params.isolated_pawn_eg * eg_phase) / MAX_PHASE;
         }
         if is_passed(sq, 1, white) {
-            let rank = (sq / 8) as usize;
+            let rank = (7 - (sq / 8)) as usize;
             *score -= (params.passed_pawn_mg[rank] * phase
                 + params.passed_pawn_eg[rank] * eg_phase)
                 / MAX_PHASE;
@@ -130,17 +130,21 @@ fn pawn_eval(board: &Board, score: &mut i64, phase: i64, params: &EvalParams) {
 
     for (f, file_mask) in FILE_MASKS.iter().enumerate() {
         let white_count = (white & *file_mask).count_ones() as i64;
-        let group = if f < 4 { f } else { 7 - f };
-        let count = white_count - 1;
-        // We do this for every file, even if there aren't any doubled pawns, because it's quite cheap.
-        *score += count
-            * (params.doubled_pawn_mg[group] * phase + params.doubled_pawn_eg[group] * eg_phase)
-            / MAX_PHASE;
         let black_count = (black & *file_mask).count_ones() as i64;
-        let count = black_count - 1;
-        *score -= count
-            * (params.doubled_pawn_mg[group] * phase + params.doubled_pawn_eg[group] * eg_phase)
-            / MAX_PHASE;
+        let group = if f < 4 { f } else { 7 - f };
+
+        if white_count > 1 {
+            let count = white_count - 1;
+            *score += count
+                * (params.doubled_pawn_mg[group] * phase + params.doubled_pawn_eg[group] * eg_phase)
+                / MAX_PHASE;
+        }
+        if black_count > 1 {
+            let count = black_count - 1;
+            *score -= count
+                * (params.doubled_pawn_mg[group] * phase + params.doubled_pawn_eg[group] * eg_phase)
+                / MAX_PHASE;
+        }
     }
 }
 

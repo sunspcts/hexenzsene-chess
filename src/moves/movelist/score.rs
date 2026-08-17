@@ -12,7 +12,7 @@ impl MoveList {
         killers: &[u16],
         history: &[[[i32; 64]; 64]; 2],
     ) {
-        let len = self.len as usize;
+        let len = self.len;
         for i in 0..len {
             self.scores[i] = score_move(self.moves[i], pv_move, tt_move, killers, history, board);
         }
@@ -20,7 +20,7 @@ impl MoveList {
 
     pub fn score_qsearch_moves(&mut self, board: &Board) {
         // Quiescence search doesn't give a shit about PV-Moves, or TT-moves, and history/killers are unneeded.
-        let len = self.len as usize;
+        let len = self.len;
         for i in 0..len {
             let mv = self.moves[i];
             self.scores[i] = calc_mvv_lva_heuristic(board[mv.from_sq()], mv.captured_piece(board));

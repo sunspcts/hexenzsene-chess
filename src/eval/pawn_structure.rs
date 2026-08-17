@@ -34,8 +34,8 @@ pub const FILE_MASKS: [Bitboard; 8] = [
 pub(super) const ISOLATED_PAWN_MG: i64 = -18;
 pub(super) const ISOLATED_PAWN_EG: i64 = -13;
 
-pub(super) const PASSED_PAWN_MG: [i64; 8] = [0, 1, 25, 13, -8, -10, 3, 0];
-pub(super) const PASSED_PAWN_EG: [i64; 8] = [0, -2, 39, 48, 39, 20, 9, 0];
+pub(super) const PASSED_PAWN_MG: [i64; 8] = [0, 0, 5, 10, 20, 35, 60, 0];
+pub(super) const PASSED_PAWN_EG: [i64; 8] = [0, 0, 10, 25, 50, 85, 130, 0];
 
 pub(super) const DOUBLED_PAWN_MG: [i64; 4] = [7, -17, -1, -4];
 pub(super) const DOUBLED_PAWN_EG: [i64; 4] = [-10, -16, -11, -15];

@@ -7,18 +7,19 @@ use super::Move;
 pub struct MoveList {
     moves: [Move; 256],
     scores: [i16; 256],
-    len: u8, // pointer essentially
+    len: usize,
 }
 
 impl MoveList {
     // write to pointer location, and increment pointer.
     pub fn push(&mut self, mv: Move) {
-        self.moves[self.len as usize] = mv;
+        debug_assert!(self.len < 256, "MoveList overflow");
+        self.moves[self.len] = mv;
         self.len += 1;
     }
 
     pub fn len(&self) -> usize {
-        self.len as usize
+        self.len
     }
 
     pub fn is_empty(&self) -> bool {
@@ -39,7 +40,7 @@ impl MoveList {
     where
         F: FnMut(&Move) -> bool,
     {
-        let original_len = self.len as usize;
+        let original_len = self.len;
 
         //index of position we swap into, always less than or equal to read.
         let mut write = 0;
@@ -55,7 +56,7 @@ impl MoveList {
             }
         }
 
-        self.len = write as u8; // the last element we kept is at index write, so that's the new length.
+        self.len = write;
     }
 
     #[inline]
@@ -79,13 +80,13 @@ impl std::ops::Deref for MoveList {
     type Target = [Move];
 
     fn deref(&self) -> &Self::Target {
-        &self.moves[..self.len as usize]
+        &self.moves[..self.len]
     }
 }
 
 impl std::ops::DerefMut for MoveList {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.moves[..self.len as usize]
+        &mut self.moves[..self.len]
     }
 }
 
@@ -94,7 +95,7 @@ impl IntoIterator for MoveList {
     type IntoIter = std::iter::Take<std::array::IntoIter<Move, 256>>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.moves.into_iter().take(self.len as usize)
+        self.moves.into_iter().take(self.len)
     }
 }
 

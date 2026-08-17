@@ -182,7 +182,7 @@ impl Engine {
             } else {
                 let mut moves = MoveList::default();
                 unsafe { new_board.generate_pseudolegal_moves(&mut moves) };
-                let fallback = moves.into_iter().find(|m| new_board.make(*m).is_some());
+                let fallback = unsafe { moves.into_iter().find(|m| new_board.make(*m).is_some()) };
                 if let Some(mv) = fallback {
                     println!("bestmove {}", mv);
                 } else {
@@ -340,7 +340,7 @@ fn parse_uci_position(curr_board: Board, line: &str) -> (Board, Vec<u64>) {
         }
 
         if let Some(mv) = Move::from_uci(&board, m)
-            && let Some(next_board) = board.make(mv)
+            && let Some(next_board) = unsafe { board.make(mv) }
         {
             board = next_board;
             hash_history.push(board.game_state.curr_zobrist_key);

@@ -28,21 +28,22 @@ impl Board {
         for knight in self.piece_bb[side as usize][Piece::Knight as usize] {
             self.generate_leaper_moves(knight, moves, Piece::Knight);
         }
+        unsafe {
+            for bishop in self.piece_bb[side as usize][Piece::Bishop as usize] {
+                self.generate_slider_moves(bishop, moves, Piece::Bishop);
+            }
 
-        for bishop in self.piece_bb[side as usize][Piece::Bishop as usize] {
-            self.generate_slider_moves(bishop, moves, Piece::Bishop);
-        }
+            for rook in self.piece_bb[side as usize][Piece::Rook as usize] {
+                self.generate_slider_moves(rook, moves, Piece::Rook);
+            }
 
-        for rook in self.piece_bb[side as usize][Piece::Rook as usize] {
-            self.generate_slider_moves(rook, moves, Piece::Rook);
-        }
-
-        for queen in self.piece_bb[side as usize][Piece::Queen as usize] {
-            self.generate_slider_moves(queen, moves, Piece::Queen);
+            for queen in self.piece_bb[side as usize][Piece::Queen as usize] {
+                self.generate_slider_moves(queen, moves, Piece::Queen);
+            }
         }
     }
 
-    pub fn generate_pseudolegal_caps_promos(&self, moves: &mut MoveList) {
+    pub unsafe fn generate_pseudolegal_caps_promos(&self, moves: &mut MoveList) {
         moves.clear();
         let side = self.game_state.active_side;
         self.generate_pawn_caps_promos(moves);
@@ -54,17 +55,18 @@ impl Board {
         for knight in self.piece_bb[side as usize][Piece::Knight as usize] {
             self.generate_leaper_captures(knight, moves, Piece::Knight);
         }
+        unsafe {
+            for bishop in self.piece_bb[side as usize][Piece::Bishop as usize] {
+                self.generate_slider_captures(bishop, moves, Piece::Bishop);
+            }
 
-        for bishop in self.piece_bb[side as usize][Piece::Bishop as usize] {
-            self.generate_slider_captures(bishop, moves, Piece::Bishop);
-        }
+            for rook in self.piece_bb[side as usize][Piece::Rook as usize] {
+                self.generate_slider_captures(rook, moves, Piece::Rook);
+            }
 
-        for rook in self.piece_bb[side as usize][Piece::Rook as usize] {
-            self.generate_slider_captures(rook, moves, Piece::Rook);
-        }
-
-        for queen in self.piece_bb[side as usize][Piece::Queen as usize] {
-            self.generate_slider_captures(queen, moves, Piece::Queen);
+            for queen in self.piece_bb[side as usize][Piece::Queen as usize] {
+                self.generate_slider_captures(queen, moves, Piece::Queen);
+            }
         }
     }
 }

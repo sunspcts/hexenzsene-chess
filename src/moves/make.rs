@@ -7,7 +7,7 @@ use crate::{
 };
 
 impl Board {
-    pub fn make(&self, mv: Move) -> Option<Board> {
+    pub unsafe fn make(&self, mv: Move) -> Option<Board> {
         let mut board = *self;
         let side = board.game_state.active_side;
         let enemy = side.flip();
@@ -179,7 +179,7 @@ impl Board {
                 (self.piece_bb[side as usize][Piece::King as usize]).trailing_zeros() as u16;
 
             if king_sq < 64 && !unsafe { self.is_attacked(king_sq, enemy) } {
-                let pinned_bb = self.pinned_bitboard(side);
+                let pinned_bb = unsafe { self.pinned_bitboard(side) };
 
                 let mut count = 0;
                 for &m in &moves {
@@ -188,7 +188,7 @@ impl Board {
                     let is_king_or_ep = from == king_sq || m.flags() == move_flags::EP_CAPTURE;
 
                     if is_king_or_ep || is_pinned {
-                        if self.make(m).is_some() {
+                        if unsafe { self.make(m).is_some() } {
                             count += 1;
                         }
                     } else {
@@ -200,7 +200,7 @@ impl Board {
 
             let mut count = 0;
             for &m in &moves {
-                if self.make(m).is_some() {
+                if unsafe { self.make(m).is_some() } {
                     count += 1;
                 }
             }
@@ -209,7 +209,7 @@ impl Board {
 
         let mut nodes = 0;
         for &m in &moves {
-            if let Some(next_board) = self.make(m) {
+            if let Some(next_board) = unsafe { self.make(m) } {
                 nodes += unsafe { next_board.perft_helper(depth - 1, ply + 1, move_lists) };
             }
         }

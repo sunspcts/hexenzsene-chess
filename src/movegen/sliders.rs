@@ -2,7 +2,7 @@ use super::*;
 use crate::{bitboard::Bitboard, moves::MoveList, piece::Piece};
 
 impl Board {
-    pub fn generate_slider_moves(&self, from_sq: u16, moves: &mut MoveList, piece: Piece) {
+    pub unsafe fn generate_slider_moves(&self, from_sq: u16, moves: &mut MoveList, piece: Piece) {
         let side = self.game_state.active_side as usize;
         let friendly_pieces = self.side_bb[side];
         //XORing here saves us an (albeit unlikely to be mispredicted) branch.
@@ -36,7 +36,7 @@ impl Board {
     }
 
     // Used primarily for quiescense search, only generates captures.
-    pub fn generate_slider_captures(&self, from_sq: u16, moves: &mut MoveList, piece: Piece) {
+    pub unsafe fn generate_slider_captures(&self, from_sq: u16, moves: &mut MoveList, piece: Piece) {
         let side = self.game_state.active_side as usize;
         let enemy_pieces = self.side_bb[side ^ 1];
         let occupancy = self.side_bb[0] | self.side_bb[1];
@@ -57,12 +57,12 @@ impl Board {
         }
     }
 
-    pub fn get_rook_attacks(&self, sq: u16) -> Bitboard {
+    pub unsafe fn get_rook_attacks(&self, sq: u16) -> Bitboard {
         let occupancy = self.side_bb[0] | self.side_bb[1];
         unsafe { magic_sliders::get_rook_attacks(occupancy, sq) }
     }
 
-    pub fn get_bishop_attacks(&self, sq: u16) -> Bitboard {
+    pub unsafe fn get_bishop_attacks(&self, sq: u16) -> Bitboard {
         let occupancy = self.side_bb[0] | self.side_bb[1];
         unsafe { magic_sliders::get_bishop_attacks(occupancy, sq) }
     }

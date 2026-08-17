@@ -127,7 +127,7 @@ impl Board {
     }
 
     /// Returns a bitboard containing all friendly pieces that are pinned to the king.
-    pub fn pinned_bitboard(&self, side: Side) -> Bitboard {
+    pub unsafe fn pinned_bitboard(&self, side: Side) -> Bitboard {
         let enemy = side.flip();
         let king_sq = (self.piece_bb[side as usize][Piece::King as usize]).trailing_zeros() as u16;
         if king_sq >= 64 {

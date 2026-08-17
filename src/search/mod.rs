@@ -66,7 +66,7 @@ unsafe fn search_fixed_depth(
     for i in 0..moves_count {
         let candidate_move = env.move_lists[ply].pick_best(i);
         // board.make() returns None if the move is illegal, so this is also our legal move filter.
-        if let Some(next_board) = board.make(candidate_move) {
+        if let Some(next_board) = unsafe { board.make(candidate_move) } {
             let is_quiet = !candidate_move.is_capture();
             let is_killer = is_quiet
                 && (candidate_move.data() == env.killers[ply][0]

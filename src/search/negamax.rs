@@ -46,7 +46,7 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
 
     env.move_lists[ply].generate_pseudolegal_moves(board); // No staged movegen yet. Generate everything.
 
-    env.move_lists[ply].score_moves(board, pv_move, tt_move, &env.killers[ply], &env.history); // Ordering score!
+    env.move_lists[ply].score_moves(board, pv_move, tt_move, &env.killers.get(ply), &env.history); // Ordering score!
     let moves_count = env.move_lists[ply].len();
 
     let mut best_move = None;
@@ -61,9 +61,7 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
         let candidate_move = env.move_lists[ply].pick_best(i);
         if let Some(next_board) = board.make(candidate_move) {
             let is_quiet = !candidate_move.is_capture();
-            let is_killer = is_quiet
-                && (candidate_move.data() == env.killers[ply][0]
-                    || candidate_move.data() == env.killers[ply][1]);
+            let is_killer = is_quiet && env.killers.is_killer(ply, candidate_move);
 
             if is_quiet && quiet_count < 64 {
                 // We're gonna give this a malus if another quiet move causes a beta cutoff.
@@ -98,16 +96,12 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
                 // Cutoff! we don't need to look any further down this branch.
                 if is_quiet {
                     // We should order this move higher now!
-                    if candidate_move.data() != env.killers[ply][0] {
-                        env.killers[ply][1] = env.killers[ply][0];
-                        env.killers[ply][0] = candidate_move.data();
-                    }
+                    env.killers.add(ply, candidate_move);
                     let side = board.game_state.active_side as usize;
-                    history_gravity::update_history_cutoff(
-                        &mut env.history,
+                    env.history.update_cutoff(
                         side,
-                        candidate_move,                        // Move to incentivise
-                        &quiet_moves_tried[..quiet_count - 1], // Moves to penalize
+                        candidate_move,
+                        &quiet_moves_tried[..quiet_count - 1],
                         depth,
                     );
                 }

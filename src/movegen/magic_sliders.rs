@@ -37,7 +37,6 @@ impl MagicTable {
         self.get_attacks(blockers, square as usize)
     }
 
-
     #[inline(always)]
     pub fn rook_attacks(&self, blockers: Bitboard, square: u16) -> Bitboard {
         debug_assert!(square < 64, "Rook square index out of bounds: {}", square);
@@ -65,26 +64,18 @@ pub fn init_magics() {
 #[inline(always)]
 pub fn get_rook_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
     let ptr = MAGICS_PTR.load(Ordering::Acquire);
-    unsafe {
-        (*ptr).rook_attacks(occupancy, square)
-    }
+    unsafe { (*ptr).rook_attacks(occupancy, square) }
 }
 
 #[inline(always)]
 pub fn get_bishop_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
     let ptr = MAGICS_PTR.load(Ordering::Acquire);
-    unsafe {
-        (*ptr).bishop_attacks(occupancy, square)
-    }
+    unsafe { (*ptr).bishop_attacks(occupancy, square) }
 }
 
 // Returns ONLY X-Ray attacks on `square` passing through `blockers` to secondary target squares.
 #[inline(always)]
-pub fn get_rook_xray_attacks(
-    occupancy: Bitboard,
-    blockers: Bitboard,
-    square: u16,
-) -> Bitboard {
+pub fn get_rook_xray_attacks(occupancy: Bitboard, blockers: Bitboard, square: u16) -> Bitboard {
     let attacks = get_rook_attacks(occupancy, square);
     let filtered_blockers = blockers & attacks;
     let secondary_attacks = get_rook_attacks(occupancy ^ filtered_blockers, square);
@@ -93,11 +84,7 @@ pub fn get_rook_xray_attacks(
 
 // Returns ONLY X-Ray attacks on `square` passing through `blockers` to secondary target squares.
 #[inline(always)]
-pub fn get_bishop_xray_attacks(
-    occupancy: Bitboard,
-    blockers: Bitboard,
-    square: u16,
-) -> Bitboard {
+pub fn get_bishop_xray_attacks(occupancy: Bitboard, blockers: Bitboard, square: u16) -> Bitboard {
     let attacks = get_bishop_attacks(occupancy, square);
     let filtered_blockers = blockers & attacks;
     let secondary_attacks = get_bishop_attacks(occupancy ^ filtered_blockers, square);

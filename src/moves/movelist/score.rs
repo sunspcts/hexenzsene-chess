@@ -1,4 +1,6 @@
-use crate::{board::Board, heuristics::calc_mvv_lva_heuristic, moves::move_flags};
+use crate::{
+    board::Board, heuristics::calc_mvv_lva_heuristic, moves::move_flags, search::HistoryTable,
+};
 
 use super::*;
 
@@ -9,8 +11,8 @@ impl MoveList {
         board: &Board,
         pv_move: Option<Move>,
         tt_move: Option<Move>,
-        killers: &[u16],
-        history: &[[[i32; 64]; 64]; 2],
+        killers: &[Move],
+        history: &HistoryTable,
     ) {
         let len = self.len;
         for i in 0..len {
@@ -33,8 +35,8 @@ fn score_move(
     mv: Move,
     pv_move: Option<Move>,
     tt_move: Option<Move>,
-    killers: &[u16],
-    history: &[[[i32; 64]; 64]; 2],
+    killers: &[Move],
+    history: &HistoryTable,
     board: &Board,
 ) -> i16 {
     if Some(mv) == pv_move {
@@ -55,15 +57,15 @@ fn score_move(
     }
 
     //Rank the killer moves right next to each other.
-    if mv.data() == killers[0] {
+    if mv == killers[0] {
         return 9000;
     }
-    if mv.data() == killers[1] {
+    if mv == killers[1] {
         return 8999;
     }
 
     // Only non-killer quiet moves (and underpromotions right now). Return value from the history table.
     let side = board.game_state.active_side as usize;
-    let hist_val = history[side][mv.from_sq() as usize][mv.to_sq() as usize];
+    let hist_val = history.get(side, mv);
     hist_val as i16
 }

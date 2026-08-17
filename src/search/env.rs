@@ -5,7 +5,10 @@ use std::sync::{
 
 use super::*;
 
-use crate::moves::MoveList;
+use crate::{
+    moves::MoveList,
+    search::{history_gravity::HistoryTable, killer_heuristic::KillerTable},
+};
 
 // Holds global search variables. Initialized at the start of each search. (Gonna create a nice ::new() function at some point to avoid having all public fields.)
 pub struct SearchEnv<'a> {
@@ -17,10 +20,10 @@ pub struct SearchEnv<'a> {
     pub stopped: bool,
     pub age: u8, // increments every time a search is run, essentially a move counter in normal practice ("Which move of the game was this search run on?").
     pub tt: &'a mut TT, // Mutable reference to the Transposition Table.
-    pub killers: [[u16; 2]; MAX_PLY], // Killer Move Storage (Ordering)
-    pub history: [[[i32; 64]; 64]; 2], // History Table Storage (Ordering)
+    pub killers: KillerTable, // Killer Move Storage (Ordering)
+    pub history: HistoryTable, // History Table Storage (Ordering)
     pub move_lists: [MoveList; MAX_PLY], // One move list per ply.
-    pub pv: PvTable,                     // Triangular PV table.
+    pub pv: PvTable, // Triangular PV table.
 }
 
 impl<'a> SearchEnv<'a> {

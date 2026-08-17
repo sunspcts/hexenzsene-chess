@@ -3,9 +3,10 @@
 mod env;
 mod format;
 mod history_gravity;
+mod killer_heuristic;
 mod lmr;
 mod negamax;
-pub mod pv;
+mod pv;
 mod qsearch;
 mod tt;
 
@@ -20,6 +21,8 @@ use tt::{NodeType, TTEntry, score_to_tt};
 
 // Public re-exports
 pub use env::{SearchContext, SearchControl, SearchEnv};
+pub use history_gravity::HistoryTable;
+pub use killer_heuristic::KillerTable;
 pub use pv::PvTable;
 pub use tt::TT;
 
@@ -29,11 +32,7 @@ pub const MATE_EVAL: i64 = 30000;
 const NODE_CHECK_INTERVAL_MASK: u64 = 2047; // Check search control every 2048 nodes
 pub const MAX_PLY: usize = 256;
 
-fn search_fixed_depth(
-    board: &Board,
-    depth: i64,
-    env: &mut SearchEnv,
-) -> (i64, Option<Move>) {
+fn search_fixed_depth(board: &Board, depth: i64, env: &mut SearchEnv) -> (i64, Option<Move>) {
     // Fetch the TT move.
     let tt_move = env
         .tt
@@ -50,7 +49,7 @@ fn search_fixed_depth(
     let mut context = SearchContext::new_full_window(root_depth, root_depth >= 3 && !in_check);
 
     env.move_lists[ply].generate_pseudolegal_moves(board); // No staged movegen yet. Generate everything.
-    env.move_lists[ply].score_moves(board, pv_move, tt_move, &env.killers[ply], &env.history); // Ordering score!
+    env.move_lists[ply].score_moves(board, pv_move, tt_move, &env.killers.get(ply), &env.history); // Ordering score!
     let moves_count = env.move_lists[ply].len();
 
     let mut best_move = None;
@@ -62,9 +61,7 @@ fn search_fixed_depth(
         // board.make() returns None if the move is illegal, so this is also our legal move filter.
         if let Some(next_board) = board.make(candidate_move) {
             let is_quiet = !candidate_move.is_capture();
-            let is_killer = is_quiet
-                && (candidate_move.data() == env.killers[ply][0]
-                    || candidate_move.data() == env.killers[ply][1]);
+            let is_killer = is_quiet && env.killers.is_killer(ply, candidate_move);
 
             env.hash_history.push(board.game_state.curr_zobrist_key);
             // Calls safe wrapper around negamax, taking into account the first move.

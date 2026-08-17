@@ -125,13 +125,15 @@ fn pawn_eval(board: &Board, score: &mut i64, phase: i64, params: &EvalParams) {
         if white_count > 1 {
             let count = white_count - 1;
             *score += count
-                * (params.doubled_pawn_mg[group] * phase + params.doubled_pawn_eg[group] * eg_phase)
+                * (params.doubled_pawn_mg[group] * phase
+                    + params.doubled_pawn_eg[group] * eg_phase)
                 / MAX_PHASE;
         }
         if black_count > 1 {
             let count = black_count - 1;
             *score -= count
-                * (params.doubled_pawn_mg[group] * phase + params.doubled_pawn_eg[group] * eg_phase)
+                * (params.doubled_pawn_mg[group] * phase
+                    + params.doubled_pawn_eg[group] * eg_phase)
                 / MAX_PHASE;
         }
     }

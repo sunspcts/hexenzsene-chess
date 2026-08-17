@@ -16,7 +16,7 @@ impl Board {
 
     pub fn new_from_fen(fen: &str) -> Self {
         init_magics();
-        
+
         let fen_parts: Vec<&str> = fen.split_ascii_whitespace().collect();
         let (piece_bb, side_bb, mailbox) = init_bb_mb_fen(fen_parts[0]);
 

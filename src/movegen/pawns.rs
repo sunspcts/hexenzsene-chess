@@ -63,13 +63,7 @@ impl MoveList {
         };
 
         //Lots of cases!
-        pawn_move_helper(
-            single_pushes,
-            offset_push,
-            move_flags::QUIET,
-            false,
-            self,
-        );
+        pawn_move_helper(single_pushes, offset_push, move_flags::QUIET, false, self);
         pawn_move_helper(
             double_pushes,
             offset_push * 2,

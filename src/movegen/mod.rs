@@ -40,7 +40,6 @@ impl MoveList {
         for queen in board.piece_bb[side as usize][Piece::Queen as usize] {
             self.generate_slider_moves(queen, board, Piece::Queen);
         }
-
     }
 
     pub fn generate_pseudolegal_caps_promos(&mut self, board: &Board) {
@@ -66,6 +65,5 @@ impl MoveList {
         for queen in board.piece_bb[side as usize][Piece::Queen as usize] {
             self.generate_slider_captures(queen, board, Piece::Queen);
         }
-
     }
 }

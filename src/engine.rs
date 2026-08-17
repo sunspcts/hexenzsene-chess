@@ -9,7 +9,7 @@ use crate::{
     board::{Board, Side},
     movegen::magic_sliders::init_magics,
     moves::{Move, MoveList},
-    search::{SearchControl, SearchEnv, TT, search},
+    search::{HistoryTable, KillerTable, SearchControl, SearchEnv, TT, search},
 };
 
 const ENGINE_NAME: &str = "Hexenzsene v0.2.0";
@@ -169,8 +169,8 @@ impl Engine {
                 age: search_age,
                 move_lists: [MoveList::default(); crate::search::MAX_PLY],
                 tt: &mut tt_guard,
-                killers: [[0; 2]; crate::search::MAX_PLY],
-                history: [[[0; 64]; 64]; 2],
+                killers: KillerTable::new(),
+                history: HistoryTable::new(),
                 pv: crate::search::PvTable::new(),
             };
 

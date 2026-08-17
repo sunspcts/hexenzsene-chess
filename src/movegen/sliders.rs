@@ -1,13 +1,13 @@
 use super::*;
 use crate::{bitboard::Bitboard, moves::MoveList, piece::Piece};
 
-impl Board {
-    pub unsafe fn generate_slider_moves(&self, from_sq: u16, moves: &mut MoveList, piece: Piece) {
-        let side = self.game_state.active_side as usize;
-        let friendly_pieces = self.side_bb[side];
+impl MoveList {
+    pub fn generate_slider_moves(&mut self, from_sq: u16, board: &Board, piece: Piece) {
+        let side = board.game_state.active_side as usize;
+        let friendly_pieces = board.side_bb[side];
         //XORing here saves us an (albeit unlikely to be mispredicted) branch.
-        let enemy_pieces = self.side_bb[side ^ 1];
-        let occupancy = self.side_bb[0] | self.side_bb[1];
+        let enemy_pieces = board.side_bb[side ^ 1];
+        let occupancy = board.side_bb[0] | board.side_bb[1];
 
         // The compiler will hopefully inline this match statement out.
         let raw_attacks = match piece {
@@ -27,19 +27,19 @@ impl Board {
         let quiets = valid_moves ^ captures;
 
         for to_sq in captures {
-            moves.push(Move::new(self, from_sq, to_sq, move_flags::CAPTURE, piece));
+            self.push(Move::new(from_sq, to_sq, move_flags::CAPTURE));
         }
 
         for to_sq in quiets {
-            moves.push(Move::new(self, from_sq, to_sq, move_flags::QUIET, piece));
+            self.push(Move::new(from_sq, to_sq, move_flags::QUIET));
         }
     }
 
     // Used primarily for quiescense search, only generates captures.
-    pub unsafe fn generate_slider_captures(&self, from_sq: u16, moves: &mut MoveList, piece: Piece) {
-        let side = self.game_state.active_side as usize;
-        let enemy_pieces = self.side_bb[side ^ 1];
-        let occupancy = self.side_bb[0] | self.side_bb[1];
+    pub fn generate_slider_captures(&mut self, from_sq: u16, board: &Board, piece: Piece) {
+        let side = board.game_state.active_side as usize;
+        let enemy_pieces = board.side_bb[side ^ 1];
+        let occupancy = board.side_bb[0] | board.side_bb[1];
 
         let captures = match piece {
             Piece::Rook => unsafe { magic_sliders::get_rook_attacks(occupancy, from_sq) },
@@ -53,17 +53,17 @@ impl Board {
         } & enemy_pieces;
 
         for to_sq in captures {
-            moves.push(Move::new(self, from_sq, to_sq, move_flags::CAPTURE, piece));
+            self.push(Move::new(from_sq, to_sq, move_flags::CAPTURE));
         }
     }
 
-    pub unsafe fn get_rook_attacks(&self, sq: u16) -> Bitboard {
-        let occupancy = self.side_bb[0] | self.side_bb[1];
+    pub unsafe fn get_rook_attacks(board: &Board, sq: u16) -> Bitboard {
+        let occupancy = board.side_bb[0] | board.side_bb[1];
         unsafe { magic_sliders::get_rook_attacks(occupancy, sq) }
     }
 
-    pub unsafe fn get_bishop_attacks(&self, sq: u16) -> Bitboard {
-        let occupancy = self.side_bb[0] | self.side_bb[1];
+    pub unsafe fn get_bishop_attacks(board: &Board, sq: u16) -> Bitboard {
+        let occupancy = board.side_bb[0] | board.side_bb[1];
         unsafe { magic_sliders::get_bishop_attacks(occupancy, sq) }
     }
 }

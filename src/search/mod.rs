@@ -27,9 +27,7 @@ pub const MATE_EVAL: i64 = 30000;
 const NODE_CHECK_INTERVAL_MASK: u64 = 2047; // Check search control every 2048 nodes
 pub const MAX_PLY: usize = 256;
 
-/// # SAFETY
-/// Calls unsafe fn `board.is_in_check()`` before initializing context, which requires `MAGICS_PTR` to be initialized.
-unsafe fn search_fixed_depth(
+fn search_fixed_depth(
     board: &Board,
     depth: i64,
     env: &mut SearchEnv,
@@ -55,7 +53,7 @@ unsafe fn search_fixed_depth(
 
     let mut context = SearchContext::new_full_window(root_depth, root_depth >= 3 && !in_check);
 
-    unsafe { board.generate_pseudolegal_moves(&mut env.move_lists[ply]) }; // No staged movegen yet. Generate everything.
+    env.move_lists[ply].generate_pseudolegal_moves(board); // No staged movegen yet. Generate everything.
     env.move_lists[ply].score_moves(board, pv_move, tt_move, &env.killers[ply], &env.history); // Ordering score!
     let moves_count = env.move_lists[ply].len();
 
@@ -120,7 +118,7 @@ pub fn search(board: &Board, max_depth: i64, env: &mut SearchEnv) -> (i64, Optio
     let mut global_best_score = 0;
 
     for d in 1..=max_depth {
-        let (score, best_move) = unsafe { search_fixed_depth(board, d, env) };
+        let (score, best_move) = search_fixed_depth(board, d, env);
 
         if env.stopped {
             if global_best_move.is_none() && best_move.is_some() {

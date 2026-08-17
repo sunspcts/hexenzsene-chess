@@ -15,14 +15,14 @@ const PROMOTION_FLAGS: [u16; 4] = [
     move_flags::QUEEN_PROMO,
 ];
 
-impl Board {
-    pub fn generate_pawn_moves(&self, moves: &mut MoveList) {
-        let side = self.game_state.active_side;
-        let pawns = self.piece_bb[side as usize][Piece::Pawn as usize];
-        let enemy_pieces = self.side_bb[(side as usize) ^ 1]; //this is disgusting but it's kinda a funny way!
-        let empty = !(self.side_bb[side as usize] | enemy_pieces);
+impl MoveList {
+    pub fn generate_pawn_moves(&mut self, board: &Board) {
+        let side = board.game_state.active_side;
+        let pawns = board.piece_bb[side as usize][Piece::Pawn as usize];
+        let enemy_pieces = board.side_bb[(side as usize) ^ 1]; //this is disgusting but it's kinda a funny way!
+        let empty = !(board.side_bb[side as usize] | enemy_pieces);
 
-        let ep_square = self.game_state.en_passant_square;
+        let ep_square = board.game_state.en_passant_square;
         let ep_square_bb = Bitboard::new(ep_square.map_or(0, |x| 1u64 << x));
 
         let attackables = enemy_pieces | ep_square_bb;
@@ -64,79 +64,71 @@ impl Board {
 
         //Lots of cases!
         pawn_move_helper(
-            self,
             single_pushes,
             offset_push,
             move_flags::QUIET,
             false,
-            moves,
+            self,
         );
         pawn_move_helper(
-            self,
             double_pushes,
             offset_push * 2,
             move_flags::DOUBLE_PAWN_PUSH,
             false,
-            moves,
+            self,
         );
         pawn_move_helper(
-            self,
             captures_left,
             offset_cap_left,
             move_flags::CAPTURE,
             false,
-            moves,
+            self,
         );
         pawn_move_helper(
-            self,
             captures_right,
             offset_cap_right,
             move_flags::CAPTURE,
             false,
-            moves,
-        );
-        pawn_move_helper(self, promo_pushes, offset_push, 0, true, moves);
-        pawn_move_helper(
             self,
+        );
+        pawn_move_helper(promo_pushes, offset_push, 0, true, self);
+        pawn_move_helper(
             promo_caps_left,
             offset_cap_left,
             move_flags::CAPTURE,
             true,
-            moves,
+            self,
         );
         pawn_move_helper(
-            self,
             promo_caps_right,
             offset_cap_right,
             move_flags::CAPTURE,
             true,
-            moves,
+            self,
         );
         pawn_move_helper(
-            self,
             ep_capture_left,
             offset_cap_left,
             move_flags::EP_CAPTURE,
             false,
-            moves,
+            self,
         );
         pawn_move_helper(
-            self,
             ep_capture_right,
             offset_cap_right,
             move_flags::EP_CAPTURE,
             false,
-            moves,
+            self,
         );
     }
 
-    pub fn generate_pawn_caps_promos(&self, moves: &mut MoveList) {
-        let side = self.game_state.active_side;
-        let pawns = self.piece_bb[side as usize][Piece::Pawn as usize];
-        let enemy_pieces = self.side_bb[(side as usize) ^ 1]; //this is disgusting but it's kinda a funny way!
-        let empty = !(self.side_bb[side as usize] | enemy_pieces);
+    pub fn generate_pawn_caps_promos(&mut self, board: &Board) {
+        let side = board.game_state.active_side;
+        let pawns = board.piece_bb[side as usize][Piece::Pawn as usize];
+        let enemy_pieces = board.side_bb[(side as usize) ^ 1]; //this is disgusting but it's kinda a funny way!
+        let empty = !(board.side_bb[side as usize] | enemy_pieces);
 
-        let ep_square = self.game_state.en_passant_square;
+        let ep_square = board.game_state.en_passant_square;
         let ep_square_bb = Bitboard::new(ep_square.map_or(0, |x| 1u64 << x));
 
         let single_pushes = if side == Side::White {
@@ -176,60 +168,53 @@ impl Board {
 
         //Lots of cases!
         pawn_move_helper(
-            self,
             captures_left,
             offset_cap_left,
             move_flags::CAPTURE,
             false,
-            moves,
+            self,
         );
         pawn_move_helper(
-            self,
             captures_right,
             offset_cap_right,
             move_flags::CAPTURE,
             false,
-            moves,
-        );
-        pawn_move_helper(self, promo_pushes, offset_push, 0, true, moves);
-        pawn_move_helper(
             self,
+        );
+        pawn_move_helper(promo_pushes, offset_push, 0, true, self);
+        pawn_move_helper(
             promo_caps_left,
             offset_cap_left,
             move_flags::CAPTURE,
             true,
-            moves,
+            self,
         );
         pawn_move_helper(
-            self,
             promo_caps_right,
             offset_cap_right,
             move_flags::CAPTURE,
             true,
-            moves,
+            self,
         );
         pawn_move_helper(
-            self,
             ep_capture_left,
             offset_cap_left,
             move_flags::EP_CAPTURE,
             false,
-            moves,
+            self,
         );
         pawn_move_helper(
-            self,
             ep_capture_right,
             offset_cap_right,
             move_flags::EP_CAPTURE,
             false,
-            moves,
+            self,
         );
     }
 }
 
 #[inline]
 fn pawn_move_helper(
-    board: &Board,
     dest_bb: Bitboard,
     offset: i16,
     flag: u16,
@@ -240,13 +225,13 @@ fn pawn_move_helper(
         for to_sq in dest_bb {
             let from_sq = (to_sq as i16 - offset) as u16;
             for pflag in PROMOTION_FLAGS {
-                moves.push(Move::new(board, from_sq, to_sq, flag | pflag, Piece::Pawn));
+                moves.push(Move::new(from_sq, to_sq, flag | pflag));
             }
         }
     } else {
         for to_sq in dest_bb {
             let from_sq = (to_sq as i16 - offset) as u16;
-            moves.push(Move::new(board, from_sq, to_sq, flag, Piece::Pawn));
+            moves.push(Move::new(from_sq, to_sq, flag));
         }
     }
 }

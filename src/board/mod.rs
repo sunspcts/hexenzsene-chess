@@ -1,7 +1,6 @@
 // IMPORTS
 
 mod init;
-mod null_moves;
 mod state;
 
 #[cfg(test)]

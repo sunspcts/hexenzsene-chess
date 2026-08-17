@@ -3,12 +3,12 @@ use super::*;
 use super::attacks::*;
 use crate::{moves::MoveList, piece::Piece};
 
-impl Board {
-    pub fn generate_leaper_moves(&self, from_sq: u16, moves: &mut MoveList, piece: Piece) {
-        let side = self.game_state.active_side as usize;
-        let friendly_pieces = self.side_bb[side];
+impl MoveList {
+    pub fn generate_leaper_moves(&mut self, from_sq: u16, board: &Board, piece: Piece) {
+        let side = board.game_state.active_side as usize;
+        let friendly_pieces = board.side_bb[side];
         //XORing here saves us an (albeit unlikely to be mispredicted) branch.
-        let enemy_pieces = self.side_bb[(side) ^ 1];
+        let enemy_pieces = board.side_bb[(side) ^ 1];
 
         // Here we just trust the compiler to inline it properly.
         let raw_attacks = match piece {
@@ -24,18 +24,18 @@ impl Board {
         let quiets = valid_moves ^ captures;
 
         for to_sq in captures {
-            moves.push(Move::new(self, from_sq, to_sq, move_flags::CAPTURE, piece));
+            self.push(Move::new(from_sq, to_sq, move_flags::CAPTURE));
         }
 
         for to_sq in quiets {
-            moves.push(Move::new(self, from_sq, to_sq, move_flags::QUIET, piece));
+            self.push(Move::new(from_sq, to_sq, move_flags::QUIET));
         }
     }
 
     // Used primarily for quiescense search, only generates captures.
-    pub fn generate_leaper_captures(&self, from_sq: u16, moves: &mut MoveList, piece: Piece) {
-        let side = self.game_state.active_side as usize;
-        let enemy_pieces = self.side_bb[side ^ 1];
+    pub fn generate_leaper_captures(&mut self, from_sq: u16, board: &Board, piece: Piece) {
+        let side = board.game_state.active_side as usize;
+        let enemy_pieces = board.side_bb[side ^ 1];
 
         let captures = match piece {
             Piece::Knight => KNIGHT_ATTACKS[from_sq as usize],
@@ -44,7 +44,7 @@ impl Board {
         } & enemy_pieces;
 
         for to_sq in captures {
-            moves.push(Move::new(self, from_sq, to_sq, move_flags::CAPTURE, piece));
+            self.push(Move::new(from_sq, to_sq, move_flags::CAPTURE));
         }
     }
 }

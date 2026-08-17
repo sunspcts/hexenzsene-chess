@@ -169,7 +169,7 @@ impl Board {
         }
 
         let ply_idx = ply.min(255);
-        unsafe { self.generate_pseudolegal_moves(&mut move_lists[ply_idx]) };
+        move_lists[ply_idx].generate_pseudolegal_moves(self);
         let moves = move_lists[ply_idx];
 
         if depth == 1 {

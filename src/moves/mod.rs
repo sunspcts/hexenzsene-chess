@@ -51,7 +51,7 @@ impl Eq for Move {}
 
 impl Move {
     // Packs arguments
-    pub fn new(_board: &Board, from: u16, to: u16, flags: u16, _piece: Piece) -> Self {
+    pub fn new(from: u16, to: u16, flags: u16) -> Self {
         Move {
             data: { (from) | (to << 6) | (flags << 12) },
         }

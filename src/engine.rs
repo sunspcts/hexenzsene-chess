@@ -181,7 +181,7 @@ impl Engine {
                 println!("bestmove {}", mv);
             } else {
                 let mut moves = MoveList::default();
-                unsafe { new_board.generate_pseudolegal_moves(&mut moves) };
+                moves.generate_pseudolegal_moves(&new_board);
                 let fallback = unsafe { moves.into_iter().find(|m| new_board.make(*m).is_some()) };
                 if let Some(mv) = fallback {
                     println!("bestmove {}", mv);

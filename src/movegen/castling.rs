@@ -9,10 +9,10 @@ use crate::{bitboard::Bitboard, moves::MoveList};
 // bit 2 - Black Kingside Castling
 // bit 3 - Black Queenside Castling
 
-impl Board {
-    pub fn generate_castling_moves(&self, moves: &mut MoveList) {
-        let side = self.game_state.active_side as usize;
-        let all_pieces = self.side_bb[0] | self.side_bb[1];
+impl MoveList {
+    pub fn generate_castling_moves(&mut self, board: &Board) {
+        let side = board.game_state.active_side as usize;
+        let occupancy = board.side_bb[0] | board.side_bb[1];
 
         let shift = side * 56;
         let ks_mask = Bitboard::new(0b01100000 << shift); // F1, G1 for white, F8, G8 for black.
@@ -21,18 +21,18 @@ impl Board {
 
         let (perm_mask_ks, perm_mask_qs) = (1 << (side * 2), 2 << (side * 2)); // side * 2 = 0 for white, 2 for black.
 
-        if (perm_mask_ks & self.game_state.castling != 0)
-            & (all_pieces & ks_mask == Bitboard::zero())
+        if (perm_mask_ks & board.game_state.castling != 0)
+            & (occupancy & ks_mask == Bitboard::zero())
         {
             // ya like bitwise comparisons?
-            moves.push(Move::new_from_raw(
+            self.push(Move::new_from_raw(
                 (king_sq) | ((king_sq + 2) << 6) | (move_flags::KING_CASTLE << 12),
             ))
         }
-        if (perm_mask_qs & self.game_state.castling != 0)
-            & (all_pieces & qs_mask == Bitboard::zero())
+        if (perm_mask_qs & board.game_state.castling != 0)
+            & (occupancy & qs_mask == Bitboard::zero())
         {
-            moves.push(Move::new_from_raw(
+            self.push(Move::new_from_raw(
                 (king_sq) | ((king_sq - 2) << 6) | (move_flags::QUEEN_CASTLE << 12),
             ))
         }

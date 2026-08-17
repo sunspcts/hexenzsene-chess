@@ -22,7 +22,7 @@ pub(super) fn quiescense(board: &Board, mut context: SearchContext, env: &mut Se
         context.alpha = best_value;
     }
 
-    unsafe { board.generate_pseudolegal_caps_promos(&mut env.move_lists[ply]) };
+    env.move_lists[ply].generate_pseudolegal_caps_promos(board);
     env.move_lists[ply].score_qsearch_moves(board);
     let moves_count = env.move_lists[ply].len();
 

@@ -32,7 +32,7 @@ impl Move {
     pub fn from_uci(board: &Board, uci_str: &str) -> Option<Move> {
         init_magics(); // just in case :)
         let mut moves = super::MoveList::default();
-        unsafe { board.generate_pseudolegal_moves(&mut moves) };
+        moves.generate_pseudolegal_moves(board);
         moves
             .into_iter()
             .find(|&mv| mv.to_string() == uci_str && unsafe { board.make(mv).is_some() })

@@ -4,8 +4,7 @@ use crate::board::Board;
 
 pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut SearchEnv) -> i64 {
     let ply = context.ply().min(MAX_PLY - 1);
-    env.pv_length[ply] = 0;
-    env.pv_table[ply][0] = Move::new_from_raw(0);
+    env.pv.clear_ply(ply);
 
     if env.step_node_and_check() {
         return 0;
@@ -39,8 +38,8 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
     }
 
     // Fetch the PV-Move, if we're in the PV.
-    let pv_move = if context.is_pv && ply < env.pv_length[0] && env.pv_table[0][ply].data() != 0 {
-        Some(env.pv_table[0][ply])
+    let pv_move = if context.is_pv {
+        env.pv.pv_move(ply)
     } else {
         None
     };
@@ -92,7 +91,7 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
                 // New best move, raise alpha!
                 context.alpha = score;
 
-                env.update_pv(ply, candidate_move);
+                env.pv.update(ply, candidate_move);
             }
 
             if score >= context.beta {

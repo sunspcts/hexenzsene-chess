@@ -1,8 +1,6 @@
-mod mobility;
 mod pawn_structure;
 mod psts;
 
-use mobility::*;
 use pawn_structure::*;
 use psts::*;
 
@@ -24,8 +22,6 @@ pub struct EvalParams {
     pub eg_piece_values: [i64; 6],
     pub mg_psts: [[i64; 64]; 6],
     pub eg_psts: [[i64; 64]; 6],
-    pub knight_mobility_mg: [i64; 9],
-    pub knight_mobility_eg: [i64; 9],
 }
 
 impl Default for EvalParams {
@@ -41,8 +37,6 @@ impl Default for EvalParams {
             eg_piece_values: EG_PIECE_VALUES,
             mg_psts: MG_PSTS,
             eg_psts: EG_PSTS,
-            knight_mobility_mg: KNIGHT_MOBILITY_MG,
-            knight_mobility_eg: KNIGHT_MOBILITY_EG,
         }
     }
 }
@@ -60,15 +54,10 @@ pub fn eval_with_params(board: &Board, params: &EvalParams) -> i64 {
             phase += PIECE_PHASE[piece] * bb.count_ones() as i64;
         }
     }
-
     phase = phase.min(MAX_PHASE);
-
     let mut score = 0;
-
-    pawn_eval(board, &mut score, phase, params); // These are the only pieces with unique eval at the moment.
-    knight_eval(board, &mut score, phase, params);
-
-    for p in 2..6 {
+    pawn_eval(board, &mut score, phase, params); // These is the only piece with unique eval at the moment.
+    for p in 1..6 {
         standard_eval(p, board, &mut score, phase, params);
     }
 
@@ -146,37 +135,6 @@ fn pawn_eval(board: &Board, score: &mut i64, phase: i64, params: &EvalParams) {
                 / MAX_PHASE;
         }
     }
-}
-
-fn knight_eval(board: &Board, score: &mut i64, phase: i64, params: &EvalParams) {
-    let white = board.piece_bb[0][1];
-    let black = board.piece_bb[1][1];
-
-    *score += calc_tapered_score_with_params(
-        1,
-        phase,
-        white,
-        56,
-        &params.mg_piece_values,
-        &params.eg_piece_values,
-        &params.mg_psts,
-        &params.eg_psts,
-    );
-    *score -= calc_tapered_score_with_params(
-        1,
-        phase,
-        black,
-        0,
-        &params.mg_piece_values,
-        &params.eg_piece_values,
-        &params.mg_psts,
-        &params.eg_psts,
-    );
-
-    let mg_mob = knight_mobility_score(board, &params.knight_mobility_mg);
-    let eg_mob = knight_mobility_score(board, &params.knight_mobility_eg);
-
-    *score += (mg_mob * phase + eg_mob * (MAX_PHASE - phase)) / MAX_PHASE;
 }
 
 fn standard_eval(piece: usize, board: &Board, score: &mut i64, phase: i64, params: &EvalParams) {

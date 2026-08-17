@@ -5,8 +5,7 @@ use crate::eval::eval;
 
 pub(super) fn quiescense(board: &Board, mut context: SearchContext, env: &mut SearchEnv) -> i64 {
     let ply = (context.ply() as usize).min(MAX_PLY - 1);
-    env.pv_length[ply] = 0;
-    env.pv_table[ply][0] = Move::new_from_raw(0);
+    env.pv.clear_ply(ply);
 
     if env.step_node_and_check() {
         return 0;

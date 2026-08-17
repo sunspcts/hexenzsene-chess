@@ -5,6 +5,7 @@ mod format;
 mod history_gravity;
 mod lmr;
 mod negamax;
+pub mod pv;
 mod qsearch;
 mod tt;
 
@@ -19,6 +20,7 @@ use tt::{NodeType, TTEntry, score_to_tt};
 
 // Public re-exports
 pub use env::{SearchContext, SearchControl, SearchEnv};
+pub use pv::PvTable;
 pub use tt::TT;
 
 use crate::{board::Board, moves::Move};
@@ -39,14 +41,8 @@ fn search_fixed_depth(
         .and_then(|e| e.best_move());
     let ply = 0;
 
-    let pv_move = if env.pv_length[0] > 0 && env.pv_table[0][0].data() != 0 {
-        Some(env.pv_table[0][0])
-    } else {
-        None
-    };
-
-    env.pv_length[0] = 0;
-    env.pv_table[0][0] = Move::new_from_raw(0);
+    let pv_move = env.pv.root_move();
+    env.pv.clear_ply(0);
 
     let in_check = board.is_in_check();
     let root_depth = depth + in_check as i64;
@@ -93,7 +89,7 @@ fn search_fixed_depth(
                 best_move = Some(candidate_move);
                 context.alpha = score;
 
-                env.update_pv(ply, candidate_move);
+                env.pv.update(ply, candidate_move);
             }
         }
     }
@@ -133,7 +129,7 @@ pub fn search(board: &Board, max_depth: i64, env: &mut SearchEnv) -> (i64, Optio
 
             if !env.silent {
                 let score_str = format_score(score);
-                let pv_str = env.format_pv();
+                let pv_str = env.pv.format_pv();
 
                 println!(
                     "info depth {} score {} nodes {} pv {}",

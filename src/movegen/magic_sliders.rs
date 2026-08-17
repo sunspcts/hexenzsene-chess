@@ -26,31 +26,22 @@ impl MagicTable {
     /// # SAFETY
     /// entry_idx must be < 128
     #[inline(always)]
-    pub unsafe fn get_attacks(&self, blockers: Bitboard, entry_idx: usize) -> Bitboard {
-        debug_assert!(
-            entry_idx < 128,
-            "Magic entry index out of bounds: {}",
-            entry_idx
-        );
-        let entry = unsafe { self.entries.get_unchecked(entry_idx) };
+    pub fn get_attacks(&self, blockers: Bitboard, entry_idx: usize) -> Bitboard {
+        let entry = self.entries[entry_idx];
         let index = blockers.magic_index(entry.mask, entry.magic, entry.shift as usize);
         unsafe { *self.attacks.get_unchecked(entry.offset as usize + index) }
     }
 
-    /// # SAFETY
-    /// square < 64
     #[inline(always)]
-    pub unsafe fn bishop_attacks(&self, blockers: Bitboard, square: u16) -> Bitboard {
-        debug_assert!(square < 64, "Bishop square index out of bounds: {}", square);
-        unsafe { self.get_attacks(blockers, square as usize) }
+    pub fn bishop_attacks(&self, blockers: Bitboard, square: u16) -> Bitboard {
+        self.get_attacks(blockers, square as usize)
     }
 
-    /// # SAFETY
-    /// square < 64
+
     #[inline(always)]
-    pub unsafe fn rook_attacks(&self, blockers: Bitboard, square: u16) -> Bitboard {
+    pub fn rook_attacks(&self, blockers: Bitboard, square: u16) -> Bitboard {
         debug_assert!(square < 64, "Rook square index out of bounds: {}", square);
-        unsafe { self.get_attacks(blockers, 64 + square as usize) }
+        self.get_attacks(blockers, 64 + square as usize)
     }
 }
 
@@ -75,10 +66,6 @@ pub fn init_magics() {
 pub fn get_rook_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
     let ptr = MAGICS_PTR.load(Ordering::Acquire);
     unsafe {
-        debug_assert!(
-            !ptr.is_null(),
-            "Magics must be initialized before access"
-        );
         (*ptr).rook_attacks(occupancy, square)
     }
 }
@@ -87,10 +74,6 @@ pub fn get_rook_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
 pub fn get_bishop_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
     let ptr = MAGICS_PTR.load(Ordering::Acquire);
     unsafe {
-        debug_assert!(
-            !ptr.is_null(),
-            "Magics must be initialized before access"
-        );
         (*ptr).bishop_attacks(occupancy, square)
     }
 }

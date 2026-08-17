@@ -3,11 +3,10 @@ use super::*;
 use crate::{
     bitboard::Bitboard,
     hashing::{ZOBRIST_RANDOMS, get_piece_zobrist_index},
-    movegen::magic_sliders,
 };
 
 impl Board {
-    pub unsafe fn make(&self, mv: Move) -> Option<Board> {
+    pub fn make(&self, mv: Move) -> Option<Board> {
         let mut board = *self;
         let side = board.game_state.active_side;
         let enemy = side.flip();
@@ -29,11 +28,10 @@ impl Board {
             };
             // We check if the to square is attacked at the end of the function anyway.
             // Checking here might give a *tiny* speedup from the early return? Will test at some point but there are more pressing matters ^_^
-            if unsafe {
-                self.is_attacked(from, enemy)
-                    || self.is_attacked(transit_sq, enemy)
-                    || self.is_attacked(to, enemy)
-            } {
+            if self.is_attacked(from, enemy)
+                || self.is_attacked(transit_sq, enemy)
+                || self.is_attacked(to, enemy)
+            {
                 return None;
             }
         }
@@ -113,7 +111,7 @@ impl Board {
         // Is the side to move's king attacked? If so, illegal move!
         let king_square =
             (board.piece_bb[side as usize][Piece::King as usize]).trailing_zeros() as u16;
-        let is_legal = !unsafe { board.is_attacked(king_square, enemy) };
+        let is_legal = !board.is_attacked(king_square, enemy);
 
         if is_legal {
             board.game_state.active_side = enemy;
@@ -158,12 +156,11 @@ impl Board {
     }
 
     pub fn perft(&self, depth: u8) -> u64 {
-        magic_sliders::init_magics(); // safety :D
         let mut move_lists = [MoveList::default(); 256];
-        unsafe { self.perft_helper(depth, 0, &mut move_lists) }
+        self.perft_helper(depth, 0, &mut move_lists)
     }
 
-    unsafe fn perft_helper(&self, depth: u8, ply: usize, move_lists: &mut [MoveList; 256]) -> u64 {
+    fn perft_helper(&self, depth: u8, ply: usize, move_lists: &mut [MoveList; 256]) -> u64 {
         if depth == 0 {
             return 1;
         }
@@ -178,8 +175,8 @@ impl Board {
             let king_sq =
                 (self.piece_bb[side as usize][Piece::King as usize]).trailing_zeros() as u16;
 
-            if king_sq < 64 && !unsafe { self.is_attacked(king_sq, enemy) } {
-                let pinned_bb = unsafe { self.pinned_bitboard(side) };
+            if king_sq < 64 && !self.is_attacked(king_sq, enemy) {
+                let pinned_bb = self.pinned_bitboard(side);
 
                 let mut count = 0;
                 for &m in &moves {
@@ -188,7 +185,7 @@ impl Board {
                     let is_king_or_ep = from == king_sq || m.flags() == move_flags::EP_CAPTURE;
 
                     if is_king_or_ep || is_pinned {
-                        if unsafe { self.make(m).is_some() } {
+                        if self.make(m).is_some() {
                             count += 1;
                         }
                     } else {
@@ -200,7 +197,7 @@ impl Board {
 
             let mut count = 0;
             for &m in &moves {
-                if unsafe { self.make(m).is_some() } {
+                if self.make(m).is_some() {
                     count += 1;
                 }
             }
@@ -209,8 +206,8 @@ impl Board {
 
         let mut nodes = 0;
         for &m in &moves {
-            if let Some(next_board) = unsafe { self.make(m) } {
-                nodes += unsafe { next_board.perft_helper(depth - 1, ply + 1, move_lists) };
+            if let Some(next_board) = self.make(m) {
+                nodes += next_board.perft_helper(depth - 1, ply + 1, move_lists);
             }
         }
 

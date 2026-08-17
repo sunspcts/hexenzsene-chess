@@ -17,7 +17,7 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
     }
 
     // Check extensions.
-    let in_check = unsafe { board.is_in_check() };
+    let in_check = board.is_in_check();
     let depth = context.depth + in_check as i64;
     context.lmr_allowed = depth >= 3 && !in_check;
 
@@ -60,7 +60,7 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
 
     for i in 0..moves_count {
         let candidate_move = env.move_lists[ply].pick_best(i);
-        if let Some(next_board) = unsafe { board.make(candidate_move) } {
+        if let Some(next_board) = board.make(candidate_move) {
             let is_quiet = !candidate_move.is_capture();
             let is_killer = is_quiet
                 && (candidate_move.data() == env.killers[ply][0]

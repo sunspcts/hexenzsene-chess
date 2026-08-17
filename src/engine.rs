@@ -24,7 +24,7 @@ const STARTPOS_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -
 pub fn engine() {
     println!("Initializing...");
     // MAGICS_PTR is null by default. If we don't initialize it, we're gonna have a bad time!
-    // We try to initialize this a LOT more in the actual search loops (Notably at the start of every iterative deepening step).
+    // We try to initialize this again on board creation.
     init_magics();
     let stdin = io::stdin();
     let mut engine = Engine::new();
@@ -182,7 +182,7 @@ impl Engine {
             } else {
                 let mut moves = MoveList::default();
                 moves.generate_pseudolegal_moves(&new_board);
-                let fallback = unsafe { moves.into_iter().find(|m| new_board.make(*m).is_some()) };
+                let fallback = moves.into_iter().find(|m| new_board.make(*m).is_some());
                 if let Some(mv) = fallback {
                     println!("bestmove {}", mv);
                 } else {
@@ -340,7 +340,7 @@ fn parse_uci_position(curr_board: Board, line: &str) -> (Board, Vec<u64>) {
         }
 
         if let Some(mv) = Move::from_uci(&board, m)
-            && let Some(next_board) = unsafe { board.make(mv) }
+            && let Some(next_board) = board.make(mv)
         {
             board = next_board;
             hash_history.push(board.game_state.curr_zobrist_key);
@@ -370,7 +370,6 @@ mod tests {
 
     #[test]
     fn parse_uci_position_from_startpos() {
-        crate::movegen::magic_sliders::init_magics();
         let startpos_board = Board::new_from_fen(STARTPOS_FEN);
         // Scotch my beloved <3
         let (board, _) = parse_uci_position(

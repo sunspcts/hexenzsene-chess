@@ -1,8 +1,5 @@
 mod pick;
 mod score;
-
-use crate::movegen::magic_sliders::init_magics;
-
 use super::Move;
 
 // Implementing this as an array so it'll be stack allocated. Profiling showed a LOT of malloc calls in the movegen phase.
@@ -70,7 +67,6 @@ impl MoveList {
 
 impl Default for MoveList {
     fn default() -> Self {
-        init_magics(); // Probably the cheapest way to guarantee soundness.
         MoveList {
             moves: [Move::new_from_raw(0); 256],
             scores: [0; 256],

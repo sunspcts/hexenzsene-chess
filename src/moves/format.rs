@@ -1,4 +1,4 @@
-use crate::{board::Board, movegen::magic_sliders::init_magics};
+use crate::{board::Board};
 
 use super::Move;
 
@@ -30,11 +30,10 @@ impl std::fmt::Display for Move {
 impl Move {
     // Generates all possible moves, checks if the uci_string passed matches any of them. Returns None as a fallback.
     pub fn from_uci(board: &Board, uci_str: &str) -> Option<Move> {
-        init_magics(); // just in case :)
         let mut moves = super::MoveList::default();
         moves.generate_pseudolegal_moves(board);
         moves
             .into_iter()
-            .find(|&mv| mv.to_string() == uci_str && unsafe { board.make(mv).is_some() })
+            .find(|&mv| mv.to_string() == uci_str && board.make(mv).is_some())
     }
 }

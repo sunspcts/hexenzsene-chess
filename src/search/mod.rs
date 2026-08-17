@@ -21,7 +21,7 @@ use tt::{NodeType, TTEntry, score_to_tt};
 pub use env::{SearchContext, SearchControl, SearchEnv};
 pub use tt::TT;
 
-use crate::{board::Board, movegen::magic_sliders::init_magics, moves::Move};
+use crate::{board::Board, moves::Move};
 
 pub const MATE_EVAL: i64 = 30000;
 const NODE_CHECK_INTERVAL_MASK: u64 = 2047; // Check search control every 2048 nodes
@@ -48,7 +48,7 @@ fn search_fixed_depth(
     env.pv_length[0] = 0;
     env.pv_table[0][0] = Move::new_from_raw(0);
 
-    let in_check = unsafe { board.is_in_check() };
+    let in_check = board.is_in_check();
     let root_depth = depth + in_check as i64;
 
     let mut context = SearchContext::new_full_window(root_depth, root_depth >= 3 && !in_check);
@@ -64,7 +64,7 @@ fn search_fixed_depth(
     for i in 0..moves_count {
         let candidate_move = env.move_lists[ply].pick_best(i);
         // board.make() returns None if the move is illegal, so this is also our legal move filter.
-        if let Some(next_board) = unsafe { board.make(candidate_move) } {
+        if let Some(next_board) = board.make(candidate_move) {
             let is_quiet = !candidate_move.is_capture();
             let is_killer = is_quiet
                 && (candidate_move.data() == env.killers[ply][0]
@@ -113,7 +113,6 @@ fn search_fixed_depth(
 }
 
 pub fn search(board: &Board, max_depth: i64, env: &mut SearchEnv) -> (i64, Option<Move>) {
-    init_magics();
     let mut global_best_move = None;
     let mut global_best_score = 0;
 

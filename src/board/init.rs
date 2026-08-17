@@ -1,4 +1,5 @@
 use crate::bitboard::Bitboard;
+use crate::movegen::magic_sliders::init_magics;
 use crate::piece::Piece;
 
 use super::Board;
@@ -14,6 +15,8 @@ impl Board {
     // Any UCI-conformant GUI will be fine.
 
     pub fn new_from_fen(fen: &str) -> Self {
+        init_magics();
+        
         let fen_parts: Vec<&str> = fen.split_ascii_whitespace().collect();
         let (piece_bb, side_bb, mailbox) = init_bb_mb_fen(fen_parts[0]);
 

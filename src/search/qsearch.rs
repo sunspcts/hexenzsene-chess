@@ -28,7 +28,7 @@ pub(super) fn quiescense(board: &Board, mut context: SearchContext, env: &mut Se
 
     for i in 0..moves_count {
         let candidate_move = env.move_lists[ply].pick_best(i);
-        if let Some(next_board) = unsafe { board.make(candidate_move) } {
+        if let Some(next_board) = board.make(candidate_move) {
             let score = -quiescense(&next_board, context.next_context(0, context.is_pv), env);
 
             if env.stopped {

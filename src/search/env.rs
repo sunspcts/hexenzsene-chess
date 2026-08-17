@@ -105,7 +105,6 @@ pub struct SearchContext {
 
 impl SearchContext {
     pub fn new_full_window(depth: i64, lmr_allowed: bool) -> Self {
-        init_magics(); // Does nothing if magics are initialized, and we only call this once at the start of each ID loop.
         SearchContext {
             alpha: -1_000_000,
             beta: 1_000_000,
@@ -175,12 +174,7 @@ impl SearchContext {
                 let depth_clamp = (self.depth as usize).min(63);
                 let move_clamp = move_count.min(63);
 
-                // We've already done the bounds check.
-                let reduction = unsafe {
-                    LM_REDUCTIONS_TABLE
-                        .get_unchecked(depth_clamp)
-                        .get_unchecked(move_clamp)
-                };
+                let reduction = LM_REDUCTIONS_TABLE[depth_clamp][move_clamp];
                 let lmr_score =
                     -negamax(board, self.next_context_null_window(depth - reduction), env); // Search at reduced depth with a null window.
 

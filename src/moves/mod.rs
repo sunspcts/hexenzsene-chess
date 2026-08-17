@@ -90,7 +90,7 @@ impl Move {
     }
 
     pub fn captured_piece(self, board: &Board) -> Piece {
-        if self.flags() & move_flags::EP_CAPTURE != 0 {
+        if self.flags() == move_flags::EP_CAPTURE {
             Piece::Pawn
         } else {
             board[self.to_sq()]

@@ -75,7 +75,7 @@ pub struct TT {
 
 impl TT {
     pub fn new(size_mb: usize) -> Self {
-        let bytes = size_mb * 1024 * 1024;
+        let bytes = (size_mb).max(1) * 1024 * 1024;
         let target_entries = bytes / std::mem::size_of::<TTEntry>();
         let num_entries = 1usize << (usize::BITS - 1 - target_entries.leading_zeros());
         TT {

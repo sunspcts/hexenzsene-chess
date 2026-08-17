@@ -1,10 +1,12 @@
+use std::sync::atomic::{AtomicPtr, Ordering};
+
 use super::legacy_sliders;
 use crate::bitboard::Bitboard;
 use crate::rng::Xorshift;
 
 const OUTER_EDGE: Bitboard = Bitboard::new(0xFF818181818181FF);
 
-static mut MAGICS_PTR: *const MagicTable = std::ptr::null();
+static MAGICS_PTR: AtomicPtr<MagicTable> = AtomicPtr::new(std::ptr::null_mut());
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct MagicEntry {
@@ -54,65 +56,68 @@ impl MagicTable {
 
 #[inline(always)]
 pub fn init_magics() {
-    unsafe {
-        if MAGICS_PTR.is_null() {
-            let table = Box::leak(Box::new(init_magic_table()));
-            MAGICS_PTR = table as *const MagicTable;
+    if MAGICS_PTR.load(Ordering::Acquire).is_null() {
+        let table = Box::into_raw(Box::new(init_magic_table()));
+        if let Err(_existing) = MAGICS_PTR.compare_exchange(
+            std::ptr::null_mut(),
+            table,
+            Ordering::Release,
+            Ordering::Acquire,
+        ) {
+            unsafe {
+                drop(Box::from_raw(table));
+            }
         }
     }
 }
 
-// UNSAFE
-// magics must have been initialized, square < 64
 #[inline(always)]
-pub unsafe fn get_rook_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
+pub fn get_rook_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
+    let ptr = MAGICS_PTR.load(Ordering::Acquire);
     unsafe {
         debug_assert!(
-            !MAGICS_PTR.is_null(),
+            !ptr.is_null(),
             "Magics must be initialized before access"
         );
-        (*MAGICS_PTR).rook_attacks(occupancy, square)
+        (*ptr).rook_attacks(occupancy, square)
     }
 }
 
-// UNSAFE
-// magics must have been initialized, square < 64
 #[inline(always)]
-pub unsafe fn get_bishop_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
+pub fn get_bishop_attacks(occupancy: Bitboard, square: u16) -> Bitboard {
+    let ptr = MAGICS_PTR.load(Ordering::Acquire);
     unsafe {
         debug_assert!(
-            !MAGICS_PTR.is_null(),
+            !ptr.is_null(),
             "Magics must be initialized before access"
         );
-        (*MAGICS_PTR).bishop_attacks(occupancy, square)
+        (*ptr).bishop_attacks(occupancy, square)
     }
 }
 
-// UNSAFE
 // Returns ONLY X-Ray attacks on `square` passing through `blockers` to secondary target squares.
 #[inline(always)]
-pub unsafe fn get_rook_xray_attacks(
+pub fn get_rook_xray_attacks(
     occupancy: Bitboard,
     blockers: Bitboard,
     square: u16,
 ) -> Bitboard {
-    let attacks = unsafe { get_rook_attacks(occupancy, square) };
+    let attacks = get_rook_attacks(occupancy, square);
     let filtered_blockers = blockers & attacks;
-    let secondary_attacks = unsafe { get_rook_attacks(occupancy ^ filtered_blockers, square) };
+    let secondary_attacks = get_rook_attacks(occupancy ^ filtered_blockers, square);
     attacks ^ secondary_attacks
 }
 
-// UNSAFE
 // Returns ONLY X-Ray attacks on `square` passing through `blockers` to secondary target squares.
 #[inline(always)]
-pub unsafe fn get_bishop_xray_attacks(
+pub fn get_bishop_xray_attacks(
     occupancy: Bitboard,
     blockers: Bitboard,
     square: u16,
 ) -> Bitboard {
-    let attacks = unsafe { get_bishop_attacks(occupancy, square) };
+    let attacks = get_bishop_attacks(occupancy, square);
     let filtered_blockers = blockers & attacks;
-    let secondary_attacks = unsafe { get_bishop_attacks(occupancy ^ filtered_blockers, square) };
+    let secondary_attacks = get_bishop_attacks(occupancy ^ filtered_blockers, square);
     attacks ^ secondary_attacks
 }
 

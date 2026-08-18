@@ -1,5 +1,3 @@
-// This file is a fucking mess.
-
 mod env;
 mod format;
 mod history_gravity;
@@ -11,18 +9,15 @@ mod qsearch;
 mod tt;
 
 // Imports
-use negamax::negamax;
-use qsearch::quiescense;
+use negamax::{search_move, store_tt_entry};
 
 // Private Imports
 use format::format_score;
-use lmr::LM_REDUCTIONS_TABLE;
-use tt::{NodeType, TTEntry, score_to_tt};
+use tt::NodeType;
 
 // Public re-exports
 pub use env::{SearchContext, SearchControl, SearchEnv};
 pub use history_gravity::HistoryTable;
-pub use killer_heuristic::KillerTable;
 pub use pv::PvTable;
 pub use tt::TT;
 
@@ -33,12 +28,12 @@ const NODE_CHECK_INTERVAL_MASK: u64 = 2047; // Check search control every 2048 n
 pub const MAX_PLY: usize = 256;
 
 fn search_fixed_depth(board: &Board, depth: i64, env: &mut SearchEnv) -> (i64, Option<Move>) {
+    const PLY: usize = 0;
     // Fetch the TT move.
     let tt_move = env
         .tt
         .get(board.game_state.curr_zobrist_key)
         .and_then(|e| e.best_move());
-    let ply = 0;
 
     let pv_move = env.pv.root_move();
     env.pv.clear_ply(0);
@@ -48,59 +43,60 @@ fn search_fixed_depth(board: &Board, depth: i64, env: &mut SearchEnv) -> (i64, O
 
     let mut context = SearchContext::new_full_window(root_depth, root_depth >= 3 && !in_check);
 
-    env.move_lists[ply].generate_pseudolegal_moves(board); // No staged movegen yet. Generate everything.
-    env.move_lists[ply].score_moves(board, pv_move, tt_move, &env.killers.get(ply), &env.history); // Ordering score!
-    let moves_count = env.move_lists[ply].len();
+    env.move_lists[PLY].generate_pseudolegal_moves(board); // No staged movegen yet. Generate everything.
+    env.move_lists[PLY].score_moves(board, pv_move, tt_move, &env.killers.get(PLY), &env.history); // Ordering score!
+    let moves_count = env.move_lists[PLY].len();
 
     let mut best_move = None;
-    // PV Search treats the first move differently, as it's the only move that's searched with a full window by default.
     let mut move_count = 0;
 
     for i in 0..moves_count {
-        let candidate_move = env.move_lists[ply].pick_best(i);
+        let candidate_move = env.move_lists[PLY].pick_best(i);
         // board.make() returns None if the move is illegal, so this is also our legal move filter.
-        if let Some(next_board) = board.make(candidate_move) {
-            let is_quiet = !candidate_move.is_capture();
-            let is_killer = is_quiet && env.killers.is_killer(ply, candidate_move);
+        let Some(next_board) = board.make(candidate_move) else {
+            continue;
+        };
 
-            env.hash_history.push(board.game_state.curr_zobrist_key);
-            // Calls safe wrapper around negamax, taking into account the first move.
-            let score = context.search_move(
-                &next_board,
-                root_depth - 1,
-                move_count,
-                is_quiet,
-                is_killer,
-                env,
-            );
-            env.hash_history.pop();
+        let is_quiet = !candidate_move.is_capture();
+        let is_killer = is_quiet && env.killers.is_killer(PLY, candidate_move);
 
-            move_count += 1;
+        env.hash_history.push(board.game_state.curr_zobrist_key);
+        // Calls safe wrapper around negamax, taking into account the first move.
+        let score = search_move(
+            &context,
+            &next_board,
+            root_depth - 1,
+            move_count,
+            is_quiet,
+            is_killer,
+            env,
+        );
+        env.hash_history.pop();
 
-            if env.stopped {
-                break;
-            }
+        move_count += 1;
 
-            if score > context.alpha {
-                // New best move! Raise alpha.
-                best_move = Some(candidate_move);
-                context.alpha = score;
+        if env.stopped {
+            break;
+        }
 
-                env.pv.update(ply, candidate_move);
-            }
+        if score > context.alpha {
+            // New best move! Raise alpha.
+            best_move = Some(candidate_move);
+            context.alpha = score;
+
+            env.pv.update(PLY, candidate_move);
         }
     }
 
-    if !env.stopped && best_move.is_some() {
-        env.tt.store(TTEntry {
-            zobrist_key: board.game_state.curr_zobrist_key,
-            score: score_to_tt(context.alpha, 0),
-            move_data: best_move.map(|m| m.data()).unwrap_or(0),
-            depth: depth as i8,
-            node_type: NodeType::Exact,
-            age: env.age,
-        });
-    }
+    store_tt_entry(
+        env,
+        board.game_state.curr_zobrist_key,
+        context.alpha,
+        best_move,
+        depth,
+        0,
+        NodeType::Exact,
+    );
 
     (context.alpha, best_move)
 }
@@ -127,17 +123,14 @@ pub fn search(board: &Board, max_depth: i64, env: &mut SearchEnv) -> (i64, Optio
             if !env.silent {
                 let score_str = format_score(score);
                 let pv_str = env.pv.format_pv();
-
+                let pv = if pv_str.is_empty() {
+                    format!("{mv}")
+                } else {
+                    pv_str
+                };
                 println!(
-                    "info depth {} score {} nodes {} pv {}",
-                    d,
-                    score_str,
-                    env.nodes_visited,
-                    if pv_str.is_empty() {
-                        format!("{}", mv)
-                    } else {
-                        pv_str
-                    }
+                    "info depth {d} score {score_str} nodes {} pv {pv}",
+                    env.nodes_visited
                 );
             }
         }

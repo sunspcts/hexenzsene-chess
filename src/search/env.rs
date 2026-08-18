@@ -27,6 +27,29 @@ pub struct SearchEnv<'a> {
 }
 
 impl<'a> SearchEnv<'a> {
+    pub fn new(
+        tt: &'a mut TT,
+        hash_history: Vec<u64>,
+        search_control: SearchControl,
+        node_limit: u64,
+        age: u8,
+    ) -> Self {
+        Self {
+            nodes_visited: 0,
+            node_limit,
+            silent: false,
+            hash_history,
+            search_control,
+            stopped: false,
+            age,
+            tt,
+            killers: KillerTable::new(),
+            history: HistoryTable::new(),
+            move_lists: [MoveList::default(); MAX_PLY],
+            pv: PvTable::new(),
+        }
+    }
+
     #[inline(always)]
     pub fn is_repetition(&self, key: u64, half_moves: usize) -> bool {
         // Only looks back until the last move which reset the HMC.
@@ -121,48 +144,6 @@ impl SearchContext {
             depth,
             is_pv: false,
             lmr_allowed: self.lmr_allowed,
-        }
-    }
-
-    #[inline(always)]
-    pub fn search_move(
-        &self,
-        board: &Board,
-        depth: i64,
-        move_count: usize,
-        is_quiet: bool,
-        is_killer: bool,
-        env: &mut SearchEnv,
-    ) -> i64 {
-        let is_first_move = move_count == 0;
-        if is_first_move {
-            -negamax(board, self.next_context(depth, self.is_pv), env)
-        } else {
-            let can_reduce = self.lmr_allowed && is_quiet && !is_killer && move_count >= 3;
-
-            let mut score = if can_reduce {
-                let depth_clamp = (self.depth as usize).min(63);
-                let move_clamp = move_count.min(63);
-
-                let reduction = LM_REDUCTIONS_TABLE[depth_clamp][move_clamp];
-                let lmr_score =
-                    -negamax(board, self.next_context_null_window(depth - reduction), env); // Search at reduced depth with a null window.
-
-                if lmr_score > self.alpha {
-                    // We failed high! Research at full depth.
-                    -negamax(board, self.next_context_null_window(depth), env)
-                } else {
-                    lmr_score
-                }
-            } else {
-                -negamax(board, self.next_context_null_window(depth), env)
-            };
-
-            if self.is_pv && score > self.alpha && score < self.beta {
-                // Failed high even at full depth. Let's run with a full window to get an accurate score.
-                score = -negamax(board, self.next_context(depth, self.is_pv), env);
-            }
-            score
         }
     }
 }

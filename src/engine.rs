@@ -9,7 +9,7 @@ use crate::{
     board::{Board, Side},
     movegen::magic_sliders::init_magics,
     moves::{Move, MoveList},
-    search::{HistoryTable, KillerTable, SearchControl, SearchEnv, TT, search},
+    search::{SearchControl, SearchEnv, TT, search},
 };
 
 const ENGINE_NAME: &str = "Hexenzsene v0.2.0";
@@ -159,20 +159,13 @@ impl Engine {
 
         self.search_thread = Some(thread::spawn(move || {
             let mut tt_guard = tt_clone.lock().unwrap();
-            let mut env = SearchEnv {
-                nodes_visited: 0,
+            let mut env = SearchEnv::new(
+                &mut tt_guard,
+                new_history,
+                new_control,
                 node_limit,
-                silent: false,
-                hash_history: new_history,
-                search_control: new_control,
-                stopped: false,
-                age: search_age,
-                move_lists: [MoveList::default(); crate::search::MAX_PLY],
-                tt: &mut tt_guard,
-                killers: KillerTable::new(),
-                history: HistoryTable::new(),
-                pv: crate::search::PvTable::new(),
-            };
+                search_age,
+            );
 
             let (_score, best_move) = search(&new_board, max_depth, &mut env);
 

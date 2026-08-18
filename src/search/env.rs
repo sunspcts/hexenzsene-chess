@@ -98,15 +98,20 @@ pub struct SearchContext {
 }
 
 impl SearchContext {
-    pub fn new_full_window(depth: i64, lmr_allowed: bool) -> Self {
+    pub fn new(alpha: i64, beta: i64, depth: i64, lmr_allowed: bool) -> Self {
         SearchContext {
-            alpha: -1_000_000,
-            beta: 1_000_000,
+            alpha,
+            beta,
             ply: 0,
-            depth: depth,
+            depth,
             is_pv: true,
             lmr_allowed,
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn new_full_window(depth: i64, lmr_allowed: bool) -> Self {
+        Self::new(-1_000_000, 1_000_000, depth, lmr_allowed)
     }
 
     pub fn ply(&self) -> usize {

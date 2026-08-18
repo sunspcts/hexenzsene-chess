@@ -27,7 +27,13 @@ pub const MATE_EVAL: i64 = 30000;
 const NODE_CHECK_INTERVAL_MASK: u64 = 2047; // Check search control every 2048 nodes
 pub const MAX_PLY: usize = 256;
 
-fn search_fixed_depth(board: &Board, depth: i64, env: &mut SearchEnv) -> (i64, Option<Move>) {
+fn search_fixed_depth(
+    board: &Board,
+    depth: i64,
+    alpha: i64,
+    beta: i64,
+    env: &mut SearchEnv,
+) -> (i64, Option<Move>) {
     const PLY: usize = 0;
     // Fetch the TT move.
     let tt_move = env
@@ -41,13 +47,15 @@ fn search_fixed_depth(board: &Board, depth: i64, env: &mut SearchEnv) -> (i64, O
     let in_check = board.is_in_check();
     let root_depth = depth + in_check as i64;
 
-    let mut context = SearchContext::new_full_window(root_depth, root_depth >= 3 && !in_check);
+    let mut context = SearchContext::new(alpha, beta, root_depth, root_depth >= 3 && !in_check);
+    let old_alpha = context.alpha;
 
     env.move_lists[PLY].generate_pseudolegal_moves(board); // No staged movegen yet. Generate everything.
     env.move_lists[PLY].score_moves(board, pv_move, tt_move, &env.killers.get(PLY), &env.history); // Ordering score!
     let moves_count = env.move_lists[PLY].len();
 
     let mut best_move = None;
+    let mut max_score = i64::MIN;
     let mut move_count = 0;
 
     for i in 0..moves_count {
@@ -79,26 +87,77 @@ fn search_fixed_depth(board: &Board, depth: i64, env: &mut SearchEnv) -> (i64, O
             break;
         }
 
+        if score > max_score {
+            max_score = score;
+            best_move = Some(candidate_move);
+        }
+
         if score > context.alpha {
             // New best move! Raise alpha.
-            best_move = Some(candidate_move);
             context.alpha = score;
 
             env.pv.update(PLY, candidate_move);
         }
+
+        if score >= context.beta {
+            break; // Fail-high cutoff at root
+        }
     }
+
+    let best_score = if max_score == i64::MIN {
+        context.alpha
+    } else {
+        max_score
+    };
 
     store_tt_entry(
         env,
         board.game_state.curr_zobrist_key,
-        context.alpha,
+        best_score,
         best_move,
         depth,
         0,
-        NodeType::Exact,
+        context.node_type(best_score, old_alpha),
     );
 
-    (context.alpha, best_move)
+    (best_score, best_move)
+}
+
+fn search_aspiration(
+    board: &Board,
+    depth: i64,
+    prev_score: i64,
+    env: &mut SearchEnv,
+) -> (i64, Option<Move>) {
+    if depth < 4 {
+        return search_fixed_depth(board, depth, -1_000_000, 1_000_000, env);
+    }
+
+    let mut delta = 35;
+    let mut alpha = (prev_score - delta).max(-1_000_000);
+    let mut beta = (prev_score + delta).min(1_000_000);
+
+    loop {
+        let (score, best_move) = search_fixed_depth(board, depth, alpha, beta, env);
+
+        if env.stopped {
+            return (score, best_move);
+        }
+
+        if score <= alpha {
+            alpha = (alpha - delta).max(-1_000_000);
+            delta += delta / 2;
+        } else if score >= beta {
+            beta = (beta + delta).min(1_000_000);
+            delta += delta / 2;
+        } else {
+            return (score, best_move);
+        }
+
+        if alpha <= -1_000_000 && beta >= 1_000_000 {
+            return (score, best_move);
+        }
+    }
 }
 
 pub fn search(board: &Board, max_depth: i64, env: &mut SearchEnv) -> (i64, Option<Move>) {
@@ -106,7 +165,7 @@ pub fn search(board: &Board, max_depth: i64, env: &mut SearchEnv) -> (i64, Optio
     let mut global_best_score = 0;
 
     for d in 1..=max_depth {
-        let (score, best_move) = search_fixed_depth(board, d, env);
+        let (score, best_move) = search_aspiration(board, d, global_best_score, env);
 
         if env.stopped {
             if global_best_move.is_none() && best_move.is_some() {

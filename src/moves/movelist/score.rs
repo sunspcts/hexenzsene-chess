@@ -1,5 +1,5 @@
 use crate::{
-    board::Board, heuristics::calc_mvv_lva_heuristic, moves::move_flags, search::HistoryTable,
+    board::Board, moves::{move_flags, movelist::mvvlva::calc_mvv_lva_heuristic}, search::HistoryTable,
 };
 
 use super::*;

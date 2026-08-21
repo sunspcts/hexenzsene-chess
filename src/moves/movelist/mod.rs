@@ -1,5 +1,7 @@
 mod pick;
 mod score;
+mod mvvlva;
+
 use super::Move;
 
 // Implementing this as an array so it'll be stack allocated. Profiling showed a LOT of malloc calls in the movegen phase.

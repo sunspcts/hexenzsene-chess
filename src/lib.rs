@@ -3,7 +3,6 @@ mod board;
 pub mod engine;
 mod eval;
 mod hashing;
-mod heuristics;
 mod movegen;
 mod moves;
 mod piece;

@@ -189,9 +189,9 @@ pub(super) fn search_move(
     if is_first_move {
         -negamax(board, context.next_context(depth, context.is_pv), env)
     } else {
-        let can_reduce = context.lmr_allowed && is_quiet && !is_killer && move_count >= 3;
+        let can_reduce_lm = context.lmr_allowed && is_quiet && !is_killer && move_count >= 3;
 
-        let mut score = if can_reduce {
+        let mut score = if can_reduce_lm {
             let depth_clamp = (context.depth as usize).min(63);
             let move_clamp = move_count.min(63);
 

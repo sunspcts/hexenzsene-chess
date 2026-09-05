@@ -2,6 +2,7 @@
 
 mod init;
 mod state;
+mod make_null;
 
 #[cfg(test)]
 mod tests;

@@ -29,23 +29,43 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
         return score;
     }
 
-    // Null Move Pruning
-    if !in_check
-        && let Some(nmp_score) = nmp(board, &context, depth, env)
-    {
-        if env.stopped {
-            return 0;
+    // Reverse Futility and Null Move Pruning
+    if !in_check && board.has_non_pawn_material(board.game_state.active_side) {
+        let static_eval = eval(board);
+
+        let margin = 100 * depth;
+        if !context.is_pv
+            && depth <= 6
+            && context.beta < MATE_EVAL - 100
+            && static_eval >= context.beta + margin
+        {
+            store_tt_entry(
+                env,
+                board.game_state.curr_zobrist_key,
+                static_eval,
+                None,
+                depth,
+                ply,
+                NodeType::LowerBound,
+            );
+            return static_eval;
         }
-        store_tt_entry(
-            env,
-            board.game_state.curr_zobrist_key,
-            nmp_score,
-            None,
-            depth,
-            ply,
-            NodeType::LowerBound,
-        );
-        return nmp_score;
+
+        if let Some(nmp_score) = nmp(board, &context, depth, static_eval, env) {
+            if env.stopped {
+                return 0;
+            }
+            store_tt_entry(
+                env,
+                board.game_state.curr_zobrist_key,
+                nmp_score,
+                None,
+                depth,
+                ply,
+                NodeType::LowerBound,
+            );
+            return nmp_score;
+        }
     }
 
     // Move Generation & Ordering
@@ -144,20 +164,15 @@ fn nmp(
     board: &Board,
     context: &SearchContext,
     depth: i64,
+    static_eval: i64,
     env: &mut SearchEnv,
 ) -> Option<i64> {
     let can_nmp = context.nmp_allowed
         && !context.is_pv
         && depth >= 3
-        && context.beta < MATE_EVAL - 100
-        && board.has_non_pawn_material(board.game_state.active_side);
+        && context.beta < MATE_EVAL - 100;
 
-    if !can_nmp {
-        return None;
-    }
-
-    let static_eval = eval(board);
-    if static_eval < context.beta {
+    if !can_nmp || static_eval < context.beta {
         return None;
     }
 

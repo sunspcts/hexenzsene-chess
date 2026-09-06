@@ -1,6 +1,9 @@
-// Maybe should be in moves/make.rs. But also, it doesnt involve a move! So whatever.
-
 use super::{Board, Side};
+use crate::{
+    bitboard::Bitboard,
+    hashing::ZOBRIST_RANDOMS,
+    piece::Piece,
+};
 
 impl Board {
     pub fn make_null(&self) -> Option<Board> {
@@ -14,12 +17,32 @@ impl Board {
         }
 
         board.game_state.inc_halfmoves();
-        if board.game_state.active_side == Side::Black {
+        if side == Side::Black {
             board.game_state.inc_count();
         }
         board.game_state.active_side = enemy;
-        board.game_state.en_passant_square = None;
+
+        if let Some(old_ep_square) = board.game_state.en_passant_square {
+            board.game_state.curr_zobrist_key ^=
+                ZOBRIST_RANDOMS[768 + 16 + (old_ep_square % 8) as usize];
+            board.game_state.en_passant_square = None;
+        }
+
+        board.game_state.curr_zobrist_key ^= ZOBRIST_RANDOMS[768 + 16 + 8];
 
         Some(board)
+    }
+
+    pub fn has_non_pawn_material(&self, side: Side) -> bool {
+        let side_idx = side as usize;
+        (self.piece_bb[side_idx][Piece::Knight as usize]
+            | self.piece_bb[side_idx][Piece::Bishop as usize]
+            | self.piece_bb[side_idx][Piece::Rook as usize]
+            | self.piece_bb[side_idx][Piece::Queen as usize])
+            != Bitboard::zero()
+    }
+
+    pub fn king_pawn_only(&self) -> bool {
+        !self.has_non_pawn_material(self.game_state.active_side)
     }
 }

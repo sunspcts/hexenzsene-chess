@@ -1,4 +1,4 @@
-use crate::{board::Board, moves::Move};
+use crate::{board::Board, eval::eval, moves::Move};
 
 use super::lmr::LM_REDUCTIONS_TABLE;
 use super::qsearch::quiescense;
@@ -27,6 +27,25 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
         probe_tt_cutoff(env, board.game_state.curr_zobrist_key, &context, depth, ply);
     if let Some(score) = tt_cutoff {
         return score;
+    }
+
+    // Null Move Pruning
+    if !in_check
+        && let Some(nmp_score) = nmp(board, &context, depth, env)
+    {
+        if env.stopped {
+            return 0;
+        }
+        store_tt_entry(
+            env,
+            board.game_state.curr_zobrist_key,
+            nmp_score,
+            None,
+            depth,
+            ply,
+            NodeType::LowerBound,
+        );
+        return nmp_score;
     }
 
     // Move Generation & Ordering
@@ -118,6 +137,49 @@ pub(super) fn negamax(board: &Board, mut context: SearchContext, env: &mut Searc
     );
 
     max_score
+}
+
+#[inline]
+fn nmp(
+    board: &Board,
+    context: &SearchContext,
+    depth: i64,
+    env: &mut SearchEnv,
+) -> Option<i64> {
+    let can_nmp = context.nmp_allowed
+        && !context.is_pv
+        && depth >= 3
+        && context.beta < MATE_EVAL - 100
+        && board.has_non_pawn_material(board.game_state.active_side);
+
+    if !can_nmp {
+        return None;
+    }
+
+    let static_eval = eval(board);
+    if static_eval < context.beta {
+        return None;
+    }
+
+    let null_board = board.make_null()?;
+    let reduction = 2 + depth / 6;
+    let null_depth = (depth - 1 - reduction).max(0);
+
+    let null_context = context.next_context_null_move(null_depth);
+
+    env.hash_history.push(board.game_state.curr_zobrist_key);
+    let null_score = -negamax(&null_board, null_context, env);
+    env.hash_history.pop();
+
+    if env.stopped {
+        return Some(0);
+    }
+
+    if null_score >= context.beta {
+        Some(context.beta)
+    } else {
+        None
+    }
 }
 
 #[inline]

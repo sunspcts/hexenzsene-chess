@@ -95,6 +95,7 @@ pub struct SearchContext {
     pub depth: i64,
     pub is_pv: bool,
     pub lmr_allowed: bool,
+    pub nmp_allowed: bool,
 }
 
 impl SearchContext {
@@ -106,6 +107,7 @@ impl SearchContext {
             depth,
             is_pv: true,
             lmr_allowed,
+            nmp_allowed: false,
         }
     }
 
@@ -126,6 +128,7 @@ impl SearchContext {
             depth,
             is_pv,
             lmr_allowed: self.lmr_allowed,
+            nmp_allowed: true,
         }
     }
 
@@ -149,6 +152,20 @@ impl SearchContext {
             depth,
             is_pv: false,
             lmr_allowed: self.lmr_allowed,
+            nmp_allowed: true,
+        }
+    }
+
+    #[inline(always)]
+    pub fn next_context_null_move(&self, depth: i64) -> Self {
+        SearchContext {
+            alpha: -self.beta,
+            beta: -self.beta + 1,
+            ply: self.ply + 1,
+            depth,
+            is_pv: false,
+            lmr_allowed: false,
+            nmp_allowed: false,
         }
     }
 }

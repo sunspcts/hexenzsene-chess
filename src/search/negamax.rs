@@ -126,6 +126,47 @@ impl<'a> Searcher<'a> {
         None
     }
 
+    #[inline(always)]
+    fn search_single_move(
+        &mut self,
+        context: &SearchContext,
+        board: &Board,
+        depth: i64,
+        move_count: usize,
+        is_quiet: bool,
+        is_killer: bool,
+    ) -> i64 {
+        // 1. First move: search with full PV window
+        if move_count == 0 {
+            return -self.negamax(board, context.next_context(depth, context.is_pv));
+        }
+
+        // 2. Determine LMR reduction
+        let can_reduce = context.lmr_allowed && is_quiet && !is_killer && move_count >= 3;
+        let reduction = if can_reduce {
+            let d = (context.depth as usize).min(63);
+            let m = move_count.min(63);
+            LM_REDUCTIONS_TABLE[d][m]
+        } else {
+            0
+        };
+
+        // 3. Search with null window.
+        let mut score = -self.negamax(board, context.next_context_null_window(depth - reduction));
+
+        // 4. LMR re-search: if reduced search failed high, re-search at full depth with null window
+        if reduction > 0 && score > context.alpha {
+            score = -self.negamax(board, context.next_context_null_window(depth));
+        }
+
+        // 5. PVS re-search: if null window search beat alpha in a PV node, re-search with full window
+        if context.is_pv && score > context.alpha && score < context.beta {
+            score = -self.negamax(board, context.next_context(depth, true));
+        }
+
+        score
+    }
+
     pub(super) fn iterate_moves(
         &mut self,
         board: &Board,
@@ -177,34 +218,15 @@ impl<'a> Searcher<'a> {
 
             if score >= context.beta {
                 if is_quiet {
-                    self.update_hist_killers(
-                        board,
-                        ply,
-                        candidate_move,
-                        movedata.quiets_to_penalize(),
-                        depth,
-                    );
+                    self.killers.add(ply, candidate_move);
+                    let side = board.game_state.active_side as usize;
+                    self.history.update_cutoff(side, candidate_move, movedata.quiets_to_penalize(), depth);
                 }
                 break;
             }
         }
 
         movedata
-    }
-
-    #[inline]
-    fn update_hist_killers(
-        &mut self,
-        board: &Board,
-        ply: usize,
-        candidate_move: Move,
-        quiet_moves_tried: &[Move],
-        depth: i64,
-    ) {
-        self.killers.add(ply, candidate_move);
-        let side = board.game_state.active_side as usize;
-        self.history
-            .update_cutoff(side, candidate_move, quiet_moves_tried, depth);
     }
 
     #[inline]
@@ -245,47 +267,6 @@ impl<'a> Searcher<'a> {
                 age: self.age,
             });
         }
-    }
-
-    #[inline(always)]
-    fn search_single_move(
-        &mut self,
-        context: &SearchContext,
-        board: &Board,
-        depth: i64,
-        move_count: usize,
-        is_quiet: bool,
-        is_killer: bool,
-    ) -> i64 {
-        // 1. First move: search with full PV window
-        if move_count == 0 {
-            return -self.negamax(board, context.next_context(depth, context.is_pv));
-        }
-
-        // 2. Determine LMR reduction
-        let can_reduce = context.lmr_allowed && is_quiet && !is_killer && move_count >= 3;
-        let reduction = if can_reduce {
-            let d = (context.depth as usize).min(63);
-            let m = move_count.min(63);
-            LM_REDUCTIONS_TABLE[d][m]
-        } else {
-            0
-        };
-
-        // 3. Search with null window (reduced if eligible)
-        let mut score = -self.negamax(board, context.next_context_null_window(depth - reduction));
-
-        // 4. LMR re-search: if reduced search failed high, re-search at full depth with null window
-        if reduction > 0 && score > context.alpha {
-            score = -self.negamax(board, context.next_context_null_window(depth));
-        }
-
-        // 5. PVS re-search: if null window search beat alpha in a PV node, re-search with full window
-        if context.is_pv && score > context.alpha && score < context.beta {
-            score = -self.negamax(board, context.next_context(depth, true));
-        }
-
-        score
     }
 }
 

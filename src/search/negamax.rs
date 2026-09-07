@@ -35,6 +35,12 @@ impl<'a> Searcher<'a> {
             return score;
         }
 
+        // Internal Iterative Reduction (IIR)
+        let mut depth = depth;
+        if depth >= 4 && !in_check && tt_move.is_none() {
+            depth -= 1;
+        }
+
         // Move Generation & Ordering
         self.generate_and_order_moves(board, tt_move, ply, context.is_pv);
 

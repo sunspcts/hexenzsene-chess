@@ -1,6 +1,6 @@
+mod mvvlva;
 mod pick;
 mod score;
-mod mvvlva;
 
 use super::Move;
 

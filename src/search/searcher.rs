@@ -10,8 +10,8 @@ use crate::{
     search::{history_gravity::HistoryTable, killer_heuristic::KillerTable},
 };
 
-// Holds global search variables. Initialized at the start of each search. (Gonna create a nice ::new() function at some point to avoid having all public fields.)
-pub struct SearchEnv<'a> {
+// Holds search state.
+pub struct Searcher<'a> {
     pub nodes_visited: u64,            // TOTAL nodes visited across the search.
     pub node_limit: u64,               // Node count at which the search returns early.
     pub silent: bool, // When true, suppresses stdout info output (used for benchmarks).
@@ -26,7 +26,7 @@ pub struct SearchEnv<'a> {
     pub pv: PvTable, // Triangular PV table.
 }
 
-impl<'a> SearchEnv<'a> {
+impl<'a> Searcher<'a> {
     pub fn new(
         tt: &'a mut TT,
         hash_history: Vec<u64>,
@@ -109,11 +109,6 @@ impl SearchContext {
             lmr_allowed,
             nmp_allowed: false,
         }
-    }
-
-    #[allow(dead_code)]
-    pub fn new_full_window(depth: i64, lmr_allowed: bool) -> Self {
-        Self::new(-1_000_000, 1_000_000, depth, lmr_allowed)
     }
 
     pub fn ply(&self) -> usize {

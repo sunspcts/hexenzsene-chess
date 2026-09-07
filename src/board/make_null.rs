@@ -1,9 +1,5 @@
 use super::{Board, Side};
-use crate::{
-    bitboard::Bitboard,
-    hashing::ZOBRIST_RANDOMS,
-    piece::Piece,
-};
+use crate::{bitboard::Bitboard, hashing::ZOBRIST_RANDOMS, piece::Piece};
 
 impl Board {
     pub fn make_null(&self) -> Option<Board> {

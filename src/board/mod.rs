@@ -1,8 +1,8 @@
 // IMPORTS
 
 mod init;
-mod state;
 mod make_null;
+mod state;
 
 #[cfg(test)]
 mod tests;

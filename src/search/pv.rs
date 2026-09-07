@@ -52,11 +52,6 @@ impl PvTable {
         }
     }
 
-    #[inline]
-    pub fn root_move(&self) -> Option<Move> {
-        self.pv_move(0)
-    }
-
     pub fn format_pv(&self) -> String {
         let len = self.len[0];
         let mut pv_str = String::new();
